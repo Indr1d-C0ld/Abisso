@@ -5,8 +5,9 @@ import { coleMPa, severityAtPoint, SOUND_MPS } from "@/sim/model";
 import { outerPoint, stationRadii, towerBox } from "@/sim/shape";
 import { Html, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Component, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
+import { ChargeModel, chargeModelFor } from "@/components/abisso/ChargeModel";
 
 function buildOuter(boatId: string) {
   const boat = boatById(boatId);
@@ -876,21 +877,39 @@ function Pennant({ boat }: { boat: ReturnType<typeof boatById> }) {
   );
 }
 
-function Markers({ result, spheres }: { result: SimResult; spheres: boolean }) {
+const YIELD_COLOR = { full: "#b5523a", mechanical: "#c6a15a", none: "#8a8070" } as const;
+
+function Markers({ result, spheres, weaponId }: { result: SimResult; spheres: boolean; weaponId: string }) {
   const show = result.charges.filter((c) => c.yield === "full");
   const drawn = show.length > 6 ? [...show].sort((a, b) => a.slantPh - b.slantPh).slice(0, 4) : show;
+  const model = chargeModelFor(weaponId);
   return (
     <group>
-      {result.charges.map((c) => (
-        <mesh key={c.id} position={[c.x, c.y, c.z]}>
-          <sphereGeometry args={[c.yield === "none" ? 0.28 : 0.55, 12, 10]} />
-          <meshStandardMaterial
-            color={c.yield === "full" ? "#b5523a" : c.yield === "mechanical" ? "#c6a15a" : "#8a8070"}
-            emissive={c.yield === "full" ? "#5a2418" : "#000"}
-            roughness={0.45}
-          />
-        </mesh>
-      ))}
+      {result.charges.map((c) => {
+        const sphere = (
+          <mesh position={[c.x, c.y, c.z]}>
+            <sphereGeometry args={[c.yield === "none" ? 0.28 : 0.55, 12, 10]} />
+            <meshStandardMaterial
+              color={YIELD_COLOR[c.yield]}
+              emissive={c.yield === "full" ? "#5a2418" : "#000"}
+              roughness={0.45}
+            />
+          </mesh>
+        );
+        if (!model) return <group key={c.id}>{sphere}</group>;
+        // Ordigno in scala reale; l'anello conserva il codice colore dell'esito dello scoppio.
+        return (
+          <group key={c.id}>
+            <Suspense fallback={sphere}>
+              <ChargeModel model={model} chargeId={c.id} position={[c.x, c.y, c.z]} />
+            </Suspense>
+            <mesh position={[c.x, c.y, c.z]} rotation={[Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[0.62, 0.035, 8, 40]} />
+              <meshBasicMaterial color={YIELD_COLOR[c.yield]} />
+            </mesh>
+          </group>
+        );
+      })}
       {spheres &&
         drawn.map((c) => (
           <mesh key={`${c.id}-r`} position={[c.x, c.y, c.z]}>
@@ -951,7 +970,7 @@ function Stage({
       <directionalLight position={[0, -18, 20]} intensity={0.28} color="#d7c7a4" />
       <CameraRig cam={cam} loa={boat.loa} />
       <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} onHit={onHit} />
-      <Markers result={result} spheres={spheres} />
+      <Markers result={result} spheres={spheres} weaponId={input.weaponId} />
       <Shocks shot={shot} boatId={boat.id} result={result} />
       <Bubbles shot={shot} result={result} />
       {sel && (
