@@ -36,11 +36,11 @@ Il generatore ha dato lunghezza e baglio giusti ma un'opera morta troppo alta (i
 alto 12,6 m; le schede correnti danno circa 9,6 m, valore non ancora verificato su fonte). `BoatModel.tsx` riporta perciò l'altezza chiglia–ponte di
 `hull` + `deck_casing` su quella dello scafo parametrico: il rivestimento coincide con la
 geometria del calcolo (verificabile in Archivio → Modelli 3D, "Scafo di calcolo").
-Nel IIB il `jumping_wire` è generato fuori asse e viene nascosto.
+
 
 | File | Classe | Lunghezza × baglio × pescaggio | Stato | Thrixel |
 |---|---|---|---|---|
-| `uboat-iib.glb` | Tipo IIB | 42,7 × 4,08 × 3,9 m | dal catalogo; altezza corretta in codice (×0,85): due edit falliti | `2ea80a3a` |
+| `uboat-iib.glb` | Tipo IIB | 42,7 × 4,08 × 3,9 m | dal catalogo; rigenerato con le altezze nel prompt (chiglia–ponte 4,33 m contro 4,43) dopo due edit senza effetto | `01f502e2` |
 | `uboat-viic.glb` | Tipo VIIC 1941 | 67,1 × 6,2 × 4,74 m | dal catalogo; altezza corretta con edit | `1a6f0ec1` → edit `8a86a74b` → ridotto `f9000989` |
 | `uboat-viic-1944.glb` | Tipo VIIC 1944: Wintergarten, schnorchel, senza cannone | come sopra | edit del precedente; texture più scura | `c9254d52` → ridotto `ab02dd2a` |
 | `uboat-ixc.glb` | Tipo IXC 1942 | 76,8 × 6,76 × 4,7 m | dal catalogo; altezza corretta con edit | `2b27621b` → edit `6d4df89a` → ridotto `de3874bb` |

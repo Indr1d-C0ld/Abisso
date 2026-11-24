@@ -14,7 +14,7 @@ export type BoatModelDef = { url: string; label: string; config: string; hide: s
 type FamilyModels = { base: BoatModelDef; late?: BoatModelDef };
 
 export const BOAT_MODELS: Record<Family, FamilyModels> = {
-  II: { base: { url: url("uboat-iib.glb"), label: "Tipo IIB", config: "1939", hide: ["jumping_wire"] } },
+  II: { base: { url: url("uboat-iib.glb"), label: "Tipo IIB", config: "1939", hide: [] } },
   VII: {
     base: { url: url("uboat-viic.glb"), label: "Tipo VIIC", config: "1941 · cannone", hide: [] },
     late: { url: url("uboat-viic-1944.glb"), label: "Tipo VIIC", config: "1944 · schnorchel", hide: [] },
