@@ -593,16 +593,29 @@ export function App() {
                 onMiss={() => setProbe(null)}
               />
               <div className="hud">
-                <div className="legend">
-                  <span>{interior ? "Druckkörper" : "Fasciame"}</span>
-                  <ul>
-                    <li><i className="swatch" data-l="nullo" /> Integro</li>
-                    <li><i className="swatch" data-l="scossa" /> Scossa</li>
-                    <li><i className="swatch" data-l="falle" /> Falle</li>
-                    <li><i className="swatch" data-l="allagamento" /> Allagato</li>
-                    <li><i className="swatch" data-l="rottura" /> Rottura, lamiera tolta</li>
-                  </ul>
-                </div>
+                {finish === "atlantico" && !interior && !xray ? (
+                  <div className="legend" data-mode="atlantico">
+                    <span>Fasciame · resa Atlantico</span>
+                    <ul>
+                      <li><i className="swatch" data-l="nullo" /> Integro: vernice di servizio</li>
+                      <li><i className="swatch" data-l="scossa" /> Scossa, falle: lamiera sporca</li>
+                      <li><i className="swatch" data-l="allagamento" /> Allagato: vernice saltata</li>
+                      <li><i className="swatch" data-l="rottura" /> Rottura: nerofumo, squarcio</li>
+                    </ul>
+                    <small>Stesse soglie della resa Controllo.</small>
+                  </div>
+                ) : (
+                  <div className="legend">
+                    <span>{interior ? "Druckkörper" : "Fasciame"}</span>
+                    <ul>
+                      <li><i className="swatch" data-l="nullo" /> Integro</li>
+                      <li><i className="swatch" data-l="scossa" /> Scossa</li>
+                      <li><i className="swatch" data-l="falle" /> Falle</li>
+                      <li><i className="swatch" data-l="allagamento" /> Allagato</li>
+                      <li><i className="swatch" data-l="rottura" /> Rottura, lamiera tolta</li>
+                    </ul>
+                  </div>
+                )}
                 {probe && (
                   <div className="probe-card">
                     <strong>
@@ -790,7 +803,7 @@ export function App() {
                 </ol>
               </details>
               <p className="note">
-                Modello di studio da letteratura aperta. Non è uno strumento operativo e non descrive battelli successivi al 1945. Trascina lo scafo per girargli attorno; tocca il fasciame per scegliere un locale.
+                Modello di studio da letteratura aperta. Non è uno strumento operativo e non descrive battelli successivi al 1945. Trascina lo scafo per girargli attorno, rotella per avvicinarti al punto sotto il cursore; un clic sul fasciame sceglie un locale, il doppio clic porta la camera lì.
               </p>
             </section>
           </div>

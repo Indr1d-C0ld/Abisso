@@ -1,6 +1,7 @@
 // Fotografa lo Studio con alcuni preset, da vicino. Uso:
 // node scripts/studio-shots.mjs [url] [preset...]   (preset = testo del pulsante)
-// Opzioni via env: FINISH=Atlantico, ZOOM=n (scatti di rotella), CAM=Traverso.
+// Opzioni via env: FINISH=Atlantico, ZOOM=n (scatti di rotella), CAM=Traverso,
+// FOCUS=fx,fy (doppio clic in quel punto della vista, frazioni 0–1), SUFFIX=testo.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 const args = process.argv.slice(2);
@@ -32,7 +33,12 @@ for (const preset of presets) {
     }
     await p.waitForTimeout(1500);
   }
-  const tag = `${process.env.FINISH ?? "controllo"}-${preset}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  if (process.env.FOCUS && box) {
+    const [fx, fy] = process.env.FOCUS.split(",").map(Number);
+    await p.mouse.dblclick(box.x + box.width * fx, box.y + box.height * fy);
+    await p.waitForTimeout(2500);
+  }
+  const tag = `${process.env.FINISH ?? "controllo"}-${preset}${process.env.SUFFIX ? "-" + process.env.SUFFIX : ""}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   await p.locator(".viewport").screenshot({ path: `test-results/studio-${tag}.png` });
 }
 console.log(JSON.stringify(errs));

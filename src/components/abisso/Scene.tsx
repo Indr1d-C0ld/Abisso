@@ -312,31 +312,69 @@ function pose(cam: string, loa: number): [number, number, number] {
   return table[cam] ?? table.quarter;
 }
 
-function CameraRig({ cam, loa }: { cam: string; loa: number }) {
+type Focus = { x: number; y: number; z: number; n: number } | null;
+
+/**
+ * Camera: le pose preimpostate e il "doppio clic per avvicinarsi" sono transizioni
+ * morbide (~0,8 s); finita la transizione i controlli tornano liberi.
+ */
+function CameraRig({ cam, loa, focus }: { cam: string; loa: number; focus: Focus }) {
   const camera = useThree((s) => s.camera);
   const get = useThree((s) => s.get);
-  const armed = useRef(0);
+  const anim = useRef<{ fromP: THREE.Vector3; fromT: THREE.Vector3; toP: THREE.Vector3; toT: THREE.Vector3; t: number } | null>(null);
+  const first = useRef(true);
+  const start = (toP: THREE.Vector3, toT: THREE.Vector3) => {
+    const controls = get().controls as { target: THREE.Vector3 } | null;
+    anim.current = {
+      fromP: camera.position.clone(),
+      fromT: controls ? controls.target.clone() : new THREE.Vector3(0, 0.4, 0),
+      toP,
+      toT,
+      t: 0,
+    };
+  };
   useLayoutEffect(() => {
-    armed.current = 0;
-  }, [cam, loa]);
-  useFrame(() => {
-    if (armed.current > 8) return;
     const p = pose(cam, loa);
-    const target = new THREE.Vector3(0, 0.4, 0);
-    camera.position.set(p[0], p[1], p[2]);
     if (camera instanceof THREE.PerspectiveCamera) {
       camera.fov = 46;
       camera.near = 0.2;
       camera.far = 900;
       camera.updateProjectionMatrix();
     }
-    camera.lookAt(target);
+    const toP = new THREE.Vector3(p[0], p[1], p[2]);
+    const toT = new THREE.Vector3(0, 0.4, 0);
+    if (first.current) {
+      // Primo fotogramma: niente animazione dal punto di partenza del Canvas.
+      first.current = false;
+      camera.position.copy(toP);
+      camera.lookAt(toT);
+      anim.current = { fromP: toP.clone(), fromT: toT.clone(), toP, toT, t: 0.999 };
+      return;
+    }
+    start(toP, toT);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cam, loa]);
+  useLayoutEffect(() => {
+    if (!focus) return;
+    const target = new THREE.Vector3(focus.x, focus.y, focus.z);
+    // Ci si porta a ~11 m dal punto, dal lato da cui lo si guardava.
+    const dir = camera.position.clone().sub(target).normalize();
+    start(target.clone().add(dir.multiplyScalar(11)), target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
+  useFrame((_, dt) => {
+    const a = anim.current;
+    if (!a) return;
+    a.t = Math.min(1, a.t + dt / 0.8);
+    const k = a.t < 0.5 ? 4 * a.t * a.t * a.t : 1 - Math.pow(-2 * a.t + 2, 3) / 2;
+    camera.position.lerpVectors(a.fromP, a.toP, k);
+    const target = new THREE.Vector3().lerpVectors(a.fromT, a.toT, k);
     const controls = get().controls as { target: THREE.Vector3; update: () => void } | null;
     if (controls) {
       controls.target.copy(target);
       controls.update();
-      armed.current += 1;
-    }
+    } else camera.lookAt(target);
+    if (a.t >= 1) anim.current = null;
   });
   return null;
 }
@@ -364,7 +402,7 @@ function contactOnPh(boatId: string, x: number, y: number, z: number) {
   return [px, py, pz] as const;
 }
 
-function Shocks({ shot, boatId, result }: { shot: number; boatId: string; result: SimResult }) {
+function Shocks({ shot, boatId, result, subtle }: { shot: number; boatId: string; result: SimResult; subtle: boolean }) {
   const ref = useRef<THREE.Group>(null);
   const start = useRef(0);
   const clock = useThree((s) => s.clock);
@@ -387,7 +425,8 @@ function Shocks({ shot, boatId, result }: { shot: number; boatId: string; result
       const front = child as THREE.Mesh;
       front.scale.setScalar(radius);
       const mat = front.material as THREE.MeshBasicMaterial;
-      mat.opacity = reduce ? 0.22 : Math.max(0.05, 0.42 * Math.pow(1 - u, 0.55));
+      // In Atlantico il fronte è un guscio additivo che si spegne del tutto dopo il passaggio.
+      mat.opacity = reduce ? (subtle ? 0.08 : 0.22) : subtle ? 0.16 * Math.pow(1 - u, 0.8) : Math.max(0.05, 0.42 * Math.pow(1 - u, 0.55));
     });
     const flash = g.getObjectByName("flash") as THREE.Mesh | undefined;
     if (flash) {
@@ -410,8 +449,16 @@ function Shocks({ shot, boatId, result }: { shot: number; boatId: string; result
     <group ref={ref}>
       {live.map((c) => (
         <mesh key={c.id} position={[c.x, c.y, c.z]}>
-          <sphereGeometry args={[1, 28, 18]} />
-          <meshBasicMaterial color="#c6a15a" wireframe transparent opacity={0.35} depthWrite={false} />
+          <sphereGeometry args={[1, subtle ? 48 : 28, subtle ? 32 : 18]} />
+          <meshBasicMaterial
+            color={subtle ? "#cfe6e2" : "#c6a15a"}
+            wireframe={!subtle}
+            transparent
+            opacity={0.35}
+            depthWrite={false}
+            blending={subtle ? THREE.AdditiveBlending : THREE.NormalBlending}
+            side={subtle ? THREE.BackSide : THREE.FrontSide}
+          />
         </mesh>
       ))}
       <mesh name="flash" position={hit}>
@@ -553,6 +600,7 @@ function Hull({
   interior,
   skin,
   onHit,
+  onFocus,
 }: {
   boatId: string;
   era: SimInput["era"];
@@ -564,6 +612,8 @@ function Hull({
   /** Rivestimento Thrixel al posto del fasciame parametrico (che resta per il clic). */
   skin: boolean;
   onHit: (x: number, y: number, z: number) => void;
+  /** Doppio clic: la camera si avvicina al punto. */
+  onFocus: (x: number, y: number, z: number) => void;
 }) {
   const outer = useMemo(() => buildOuter(boatId), [boatId]);
   const ph = useMemo(() => buildPh(boatId), [boatId]);
@@ -609,6 +659,10 @@ function Hull({
       onClick={(e) => {
         e.stopPropagation();
         onHit(e.point.x, e.point.y, e.point.z);
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onFocus(e.point.x, e.point.y, e.point.z);
       }}
     >
       <mesh geometry={outer} dispose={null}>
@@ -992,6 +1046,7 @@ function Stage({
   const mid = stationRadii(boat, 0.5);
   const { scene, gl } = useThree();
   const atlantic = finish === "atlantico";
+  const [focus, setFocus] = useState<Focus>(null);
   useLayoutEffect(() => {
     // Il tone mapping lo fa PostFX; l'esposizione resta quella di prima.
     gl.toneMapping = THREE.NoToneMapping;
@@ -1018,10 +1073,10 @@ function Stage({
         </>
       )}
       <PostFX mode={finish} quality={quality} />
-      <CameraRig cam={cam} loa={boat.loa} />
-      <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} onHit={onHit} />
+      <CameraRig cam={cam} loa={boat.loa} focus={focus} />
+      <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} onHit={onHit} onFocus={(x, y, z) => setFocus((f) => ({ x, y, z, n: (f?.n ?? 0) + 1 }))} />
       <Markers result={result} spheres={spheres} weaponId={input.weaponId} />
-      <Shocks shot={shot} boatId={boat.id} result={result} />
+      <Shocks shot={shot} boatId={boat.id} result={result} subtle={atlantic} />
       <Bubbles shot={shot} result={result} />
       {sel && (
         <group>
@@ -1050,11 +1105,13 @@ function Stage({
       )}
       <OrbitControls
         makeDefault
+        zoomToCursor
+        enableDamping
+        dampingFactor={0.12}
         enablePan
-        minDistance={6}
+        minDistance={2.5}
         maxDistance={Math.max(120, boat.loa * 3.4)}
         maxPolarAngle={Math.PI * 0.92}
-        target={[0, 0.4, 0]}
       />
     </>
   );

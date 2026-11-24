@@ -168,6 +168,7 @@ vec3 dmgLegend( float s ) {
 const FRAGMENT_COLOR = /* glsl */ `
 float dmgSev = dmgSeverity( vDmgWorld );
 float dmgRim = 0.0;
+float dmgLip = 0.0;
 for ( int i = 0; i < MAX_WOUNDS; i++ ) {
   if ( i >= uWoundCount ) break;
   float h = uWounds[i].w;
@@ -178,6 +179,7 @@ for ( int i = 0; i < MAX_WOUNDS; i++ ) {
   float edge = h * ( 1.0 + jag );
   if ( d < edge ) discard;
   dmgRim = max( dmgRim, 1.0 - smoothstep( edge, edge + h * 0.6, d ) );
+  dmgLip = max( dmgLip, 1.0 - smoothstep( edge, edge + 0.06 + h * 0.08, d ) );
 }
 float grain = dmgNoise( vDmgWorld * 1.7 );
 if ( uMode < 0.5 ) {
@@ -185,6 +187,7 @@ if ( uMode < 0.5 ) {
   float w = smoothstep( 0.06, 0.22, dmgSev ) * 0.88;
   diffuseColor.rgb = mix( diffuseColor.rgb, dmgLegend( dmgSev ), w );
   diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.1, 0.07, 0.06 ), dmgRim * 0.8 );
+  diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.95, 0.9, 0.8 ), dmgLip * 0.7 );
 } else {
   // Atlantico: lamiera sporca e annerita, vernice che salta a chiazze, nerofumo agli squarci.
   float flake = dmgNoise( vDmgWorld * 6.0 ) * 0.6 + dmgNoise( vDmgWorld * 1.4 ) * 0.4;
@@ -194,23 +197,35 @@ if ( uMode < 0.5 ) {
   diffuseColor.rgb = mix( diffuseColor.rgb, bare, strip );
   float soot = smoothstep( 0.55, 0.95, dmgSev ) * ( 0.55 + 0.45 * flake );
   diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.03, 0.028, 0.027 ), max( soot, dmgRim * 0.9 ) );
+  // Labbro della lamiera appena strappata: acciaio vivo, chiaro.
+  diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.62, 0.6, 0.56 ), dmgLip * 0.85 );
 }
 `;
 
 const FRAGMENT_NORMAL = /* glsl */ `
-// Lamiera spiegazzata: la normale tende alla faccetta e si increspa dove il danno cresce.
+// Lamiera spiegazzata: la normale si increspa con un rumore liscio (due scale), più forte
+// dove il danno cresce e sul labbro dello squarcio. Niente normali di faccetta: sulle mesh
+// rade dei modelli generati diventerebbero una scacchiera.
 {
-  float crumple = smoothstep( 0.2, 0.7, dmgSev ) + dmgRim * 0.6;
+  float crumple = smoothstep( 0.25, 0.8, dmgSev ) * 0.55 + dmgRim * 0.6;
   if ( crumple > 0.001 ) {
-    vec3 faceN = normalize( cross( dFdx( vViewPosition ), dFdy( vViewPosition ) ) );
-    vec3 jitter = vec3( dmgNoise( vDmgWorld * 4.0 ), dmgNoise( vDmgWorld * 4.0 + 7.1 ), dmgNoise( vDmgWorld * 4.0 + 13.7 ) ) - 0.5;
-    normal = normalize( mix( normal, normalize( faceN + jitter * 0.9 ), clamp( crumple, 0.0, 1.0 ) * 0.75 ) );
+    vec3 q = vDmgWorld * 1.3;
+    vec3 j1 = vec3( dmgNoise( q ), dmgNoise( q + 7.1 ), dmgNoise( q + 13.7 ) ) - 0.5;
+    vec3 q2 = vDmgWorld * 4.2;
+    vec3 j2 = vec3( dmgNoise( q2 ), dmgNoise( q2 + 3.3 ), dmgNoise( q2 + 9.9 ) ) - 0.5;
+    vec3 jitter = ( viewMatrix * vec4( j1 * 0.8 + j2 * 0.35, 0.0 ) ).xyz;
+    normal = normalize( normal + jitter * clamp( crumple, 0.0, 1.0 ) );
   }
 }
 `;
 
 const FRAGMENT_ROUGH = /* glsl */ `
 roughnessFactor = mix( roughnessFactor, 0.95, smoothstep( 0.45, 0.95, dmgSev ) );
+roughnessFactor = mix( roughnessFactor, 0.35, dmgLip );
+`;
+
+const FRAGMENT_METAL = /* glsl */ `
+metalnessFactor = mix( metalnessFactor, 0.85, dmgLip );
 `;
 
 /** Applica il danno a un MeshStandardMaterial (lo modifica: passare un clone). */
@@ -224,16 +239,17 @@ export function applyDamage(mat: THREE.MeshStandardMaterial, uniforms: DamageUni
       .replace("#include <common>", `#include <common>\n${COMMON}\n${FRAGMENT_FUNCS}`)
       .replace("#include <color_fragment>", `#include <color_fragment>\n${FRAGMENT_COLOR}`)
       .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>\n${FRAGMENT_ROUGH}`)
+      .replace("#include <metalnessmap_fragment>", `#include <metalnessmap_fragment>\n${FRAGMENT_METAL}`)
       .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>\n${FRAGMENT_NORMAL}`);
   };
-  mat.customProgramCacheKey = () => "abisso-damage-v1";
+  mat.customProgramCacheKey = () => "abisso-damage-v2";
   mat.needsUpdate = true;
   return mat;
 }
 
 /**
  * Maschera per il corpo resistente sotto il rivestimento: si vede solo dietro gli squarci
- * (entro 1,6 volte il raggio dello squarcio). Il modello generato non è sempre più largo
+ * (entro 1,3 volte il raggio dello squarcio, il massimo del bordo strappato). Il modello generato non è sempre più largo
  * del cilindro del Druckkörper: senza maschera il cilindro sporgerebbe dai fianchi.
  */
 export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: DamageUniforms) {
@@ -243,7 +259,7 @@ export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: Damag
       .replace("#include <common>", `#include <common>\n${COMMON}`)
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvDmgWorld = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;");
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\n${COMMON}`)
+      .replace("#include <common>", `#include <common>\n${COMMON}\n${FRAGMENT_FUNCS}`)
       .replace(
         "#include <clipping_planes_fragment>",
         `#include <clipping_planes_fragment>
@@ -252,7 +268,7 @@ export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: Damag
           for ( int i = 0; i < MAX_WOUNDS; i++ ) {
             if ( i >= uWoundCount ) break;
             float h = uWounds[i].w;
-            if ( h > 0.0 && distance( vDmgWorld, uWounds[i].xyz ) < h * 1.6 + 0.6 ) near = true;
+            if ( h > 0.0 && distance( vDmgWorld, uWounds[i].xyz ) < h * 1.3 ) near = true;
           }
           if ( !near ) discard;
         }`,
@@ -262,12 +278,12 @@ export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: Damag
         `#include <color_fragment>
         // In Atlantico la lamiera interna è acciaio annerito, non la scala della legenda.
         if ( uMode > 0.5 ) {
-          float g = fract( sin( dot( floor( vDmgWorld * 3.0 ), vec3( 12.9898, 78.233, 37.719 ) ) ) * 43758.5453 );
-          diffuseColor.rgb = vec3( 0.075, 0.07, 0.066 ) * ( 0.75 + 0.5 * g );
+          float g = dmgNoise( vDmgWorld * 1.8 ) * 0.65 + dmgNoise( vDmgWorld * 6.0 ) * 0.35;
+          diffuseColor.rgb = mix( vec3( 0.11, 0.1, 0.095 ), vec3( 0.2, 0.11, 0.06 ), smoothstep( 0.35, 0.75, g ) );
         }`,
       );
   };
-  mat.customProgramCacheKey = () => "abisso-breach-v1";
+  mat.customProgramCacheKey = () => "abisso-breach-v2";
   mat.needsUpdate = true;
   return mat;
 }

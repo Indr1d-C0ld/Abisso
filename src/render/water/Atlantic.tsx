@@ -33,16 +33,26 @@ export function Atlantic({
   const { scene } = useThree();
   const water = useMemo(() => waterColor(depth), [depth]);
   const light = Math.max(0.22, Math.exp(-depth / 70));
+  const baseDensity = quality === "alta" ? 0.0105 : 0.012;
   useLayoutEffect(() => {
     const prevBg = scene.background;
     const prevFog = scene.fog;
     scene.background = water;
-    scene.fog = new THREE.FogExp2(water, quality === "alta" ? 0.0105 : 0.012);
+    scene.fog = new THREE.FogExp2(water, baseDensity);
     return () => {
       scene.background = prevBg;
       scene.fog = prevFog;
     };
-  }, [scene, water, quality]);
+  }, [scene, water, baseDensity]);
+  // Nebbia adattiva: a camera lontana si dirada, così il battello resta leggibile a ogni
+  // distanza e lo sfondo conserva la profondità. È una scelta di lettura, non ottica.
+  useFrame(({ camera, controls }) => {
+    const fog = scene.fog as THREE.FogExp2 | null;
+    if (!fog) return;
+    const target = (controls as unknown as { target?: THREE.Vector3 } | null)?.target ?? new THREE.Vector3();
+    const dist = camera.position.distanceTo(target);
+    fog.density = baseDensity * THREE.MathUtils.clamp(70 / Math.max(1, dist), 0.25, 1);
+  });
   return (
     <>
       <hemisphereLight args={[SHALLOW.clone().multiplyScalar(2.2), new THREE.Color(0.02, 0.04, 0.05), 0.55 + light * 0.9]} />
@@ -162,8 +172,10 @@ function GodRays({ depth, loa, strength }: { depth: number; loa: number; strengt
       }),
     [strength],
   );
-  useFrame(({ clock }) => {
+  useFrame(({ clock, camera }) => {
     material.uniforms.uTime.value = clock.elapsedTime;
+    // Fuori dall'acqua i raggi non si vedono come coni: si attenuano.
+    material.uniforms.uStrength.value = strength * (camera.position.y < depth ? 1 : 0.12);
     const g = group.current;
     if (!g) return;
     g.children.forEach((c, i) => {
@@ -222,12 +234,19 @@ function SeaSurface({ depth }: { depth: number }) {
             vec2 p = vWorld.xz * 0.06;
             float r = n2(p + uTime * 0.05) * 0.6 + n2(p * 2.7 - uTime * 0.08) * 0.4;
             vec3 dir = normalize(vWorld - cameraPosition);
-            float up = clamp(dir.y + (r - 0.5) * 0.12, 0.0, 1.0);
-            // cos(48,6°) ≈ 0,66: dentro la finestra il cielo, fuori la riflessione totale.
-            float window = smoothstep(0.6, 0.72, up);
-            vec3 sky = vec3(0.78, 0.9, 0.92) * (0.75 + 0.25 * r);
-            vec3 mirror = uWater * (0.55 + 0.35 * r);
-            gl_FragColor = vec4(mix(mirror, sky, window), 1.0);
+            if (cameraPosition.y > vWorld.y) {
+              // Camera sopra la superficie: acqua traslucida, riflesso che cresce radente.
+              float fres = pow(1.0 - clamp(-dir.y, 0.0, 1.0), 4.0);
+              vec3 col = mix(uWater * 0.8, vec3(0.75, 0.85, 0.88), fres * 0.7) * (0.85 + 0.3 * r);
+              gl_FragColor = vec4(col, 0.28 + 0.6 * fres);
+            } else {
+              float up = clamp(dir.y + (r - 0.5) * 0.12, 0.0, 1.0);
+              // cos(48,6°) ≈ 0,66: dentro la finestra il cielo, fuori la riflessione totale.
+              float window = smoothstep(0.6, 0.72, up);
+              vec3 sky = vec3(0.78, 0.9, 0.92) * (0.75 + 0.25 * r);
+              vec3 mirror = uWater * (0.55 + 0.35 * r);
+              gl_FragColor = vec4(mix(mirror, sky, window), 1.0);
+            }
             #include <fog_fragment>
           }`,
       }),

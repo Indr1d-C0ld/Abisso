@@ -728,3 +728,15 @@ details.adv summary {
   opacity: 0.45;
   cursor: default;
 }
+
+/* Legenda della resa Atlantico: i campioni imitano la lamiera, non la scala analitica. */
+.legend[data-mode="atlantico"] .swatch[data-l="nullo"] { background: #8d9a98; }
+.legend[data-mode="atlantico"] .swatch[data-l="scossa"] { background: #5d6463; }
+.legend[data-mode="atlantico"] .swatch[data-l="allagamento"] { background: linear-gradient(135deg, #2a2b2a 0 45%, #5a3420 45% 100%); }
+.legend[data-mode="atlantico"] .swatch[data-l="rottura"] { background: radial-gradient(circle, #0a0a0a 0 45%, #a7a39a 50% 60%, #121212 62%); }
+.legend small {
+  display: block;
+  margin-top: 0.3rem;
+  opacity: 0.7;
+  font-size: 0.7rem;
+}
