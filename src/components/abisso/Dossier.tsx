@@ -3,6 +3,7 @@ import { WEAPONS } from "@/data/weapons";
 import { n, referenceRadius } from "@/sim/model";
 import { outerPoint, stationRadii } from "@/sim/shape";
 import { useState } from "react";
+import { ModelGallery } from "@/components/abisso/ModelGallery";
 
 const SECTION_IDS = ["ii-b", "vii-c", "ix-c", "xb", "xxi"] as const;
 
@@ -129,6 +130,12 @@ export function Archive() {
       <p>
         Classi e battelli che il modello sa costruire, e gli ordigni con cui li si può colpire. Le fotografie sono d’epoca e di dominio pubblico. Le tavole degli ordigni sono ricostruzioni fatte per questo studio: non sono reperti, e non vanno citate come fotografie.
       </p>
+
+      <h3>Modelli 3D</h3>
+      <p>
+        Battelli e ordigni in scala reale. Sono rivestimenti visivi generati per questo studio: il calcolo del danno usa lo scafo parametrico, che qui si può sovrapporre per confronto. Misure e fonti in <code>public/models/README.md</code>.
+      </p>
+      <ModelGallery />
 
       <figure className="figure">
         <img src={`${import.meta.env.BASE_URL}archive/viic-plan.jpg`} alt="Piano generale di un U-Boot Tipo VIIC, disegno tecnico della Marina statunitense" loading="lazy" />

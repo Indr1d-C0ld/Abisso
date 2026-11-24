@@ -7,7 +7,8 @@ import { Html, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
-import { ChargeModel, chargeModelFor } from "@/components/abisso/ChargeModel";
+import { ChargeModel } from "@/components/abisso/ChargeModel";
+import { chargeModelFor } from "@/components/abisso/chargeModels";
 
 function buildOuter(boatId: string) {
   const boat = boatById(boatId);
