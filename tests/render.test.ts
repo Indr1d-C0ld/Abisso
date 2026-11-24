@@ -33,3 +33,13 @@ test("chargeTerms riproduce severityAtPoint sul fasciame esterno", () => {
     }
   }
 });
+
+test("costanti GLSL della frusta = quelle della forma modale in response.ts", async () => {
+  const { BETA_L } = await import("@/sim/response");
+  const src = (await import("node:fs")).readFileSync(new URL("../src/render/hullMaterial.ts", import.meta.url), "utf8");
+  const beta = Number(/float b = ([\d.]+) \*/.exec(src)?.[1]);
+  const sigma = Number(/- ([\d.]+) \* \( sinh/.exec(src)?.[1]);
+  const expected = (Math.cosh(BETA_L) - Math.cos(BETA_L)) / (Math.sinh(BETA_L) - Math.sin(BETA_L));
+  assert.ok(Math.abs(beta - BETA_L) < 1e-8, `beta ${beta}`);
+  assert.ok(Math.abs(sigma - expected) < 1e-8, `sigma ${sigma} vs ${expected}`);
+});

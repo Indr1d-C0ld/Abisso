@@ -38,6 +38,9 @@ export type DamageUniforms = {
   uWoundCount: { value: number };
   /** 0 = Controllo (scala analitica della legenda), 1 = Atlantico (resa realistica). */
   uMode: { value: number };
+  /** Spostamento verticale della frusta alle estremità, m (già moltiplicato per seno e smorzamento). */
+  uWhip: { value: number };
+  uLoa: { value: number };
 };
 
 export function createDamageUniforms(): DamageUniforms {
@@ -49,6 +52,8 @@ export function createDamageUniforms(): DamageUniforms {
     uWoundsB: { value: Array.from({ length: MAX_WOUNDS }, () => new THREE.Vector4()) },
     uWoundCount: { value: 0 },
     uMode: { value: 0 },
+    uWhip: { value: 0 },
+    uLoa: { value: 67 },
   };
 }
 
@@ -128,7 +133,14 @@ uniform vec4 uWounds[MAX_WOUNDS];
 uniform vec4 uWoundsB[MAX_WOUNDS];
 uniform int uWoundCount;
 uniform float uMode;
+uniform float uWhip;
+uniform float uLoa;
 varying vec3 vDmgWorld;
+// Primo modo libero–libero (src/sim/response.ts), normalizzato a 1 alle estremità.
+float whipMode( float xi ) {
+  float b = 4.730040745 * clamp( xi, 0.0, 1.0 );
+  return 0.5 * ( cosh( b ) + cos( b ) - 0.982502215 * ( sinh( b ) + sin( b ) ) );
+}
 `;
 
 const VERTEX_PROJECT = /* glsl */ `
@@ -144,6 +156,7 @@ for ( int i = 0; i < MAX_WOUNDS; i++ ) {
     dmgWorld.yz += uWoundsB[i].zw * uWoundsB[i].y * u * u;
   }
 }
+dmgWorld.y += uWhip * whipMode( dmgP.x / uLoa + 0.5 );
 vDmgWorld = dmgP;
 vec4 mvPosition = viewMatrix * dmgWorld;
 gl_Position = projectionMatrix * mvPosition;
@@ -278,7 +291,7 @@ export function applyDamage(mat: THREE.MeshStandardMaterial, uniforms: DamageUni
       .replace("#include <metalnessmap_fragment>", `#include <metalnessmap_fragment>\n${FRAGMENT_METAL}`)
       .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>\n${FRAGMENT_NORMAL}`);
   };
-  mat.customProgramCacheKey = () => "abisso-damage-v2";
+  mat.customProgramCacheKey = () => "abisso-damage-v3";
   mat.needsUpdate = true;
   return mat;
 }
@@ -293,7 +306,14 @@ export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: Damag
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", `#include <common>\n${COMMON}`)
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvDmgWorld = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;");
+      .replace(
+        "#include <project_vertex>",
+        `vec4 bw = modelMatrix * vec4( transformed, 1.0 );
+        vDmgWorld = bw.xyz;
+        bw.y += uWhip * whipMode( bw.x / uLoa + 0.5 );
+        vec4 mvPosition = viewMatrix * bw;
+        gl_Position = projectionMatrix * mvPosition;`,
+      );
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${COMMON}\n${FRAGMENT_FUNCS}`)
       .replace(
@@ -319,7 +339,7 @@ export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: Damag
         }`,
       );
   };
-  mat.customProgramCacheKey = () => "abisso-breach-v2";
+  mat.customProgramCacheKey = () => "abisso-breach-v3";
   mat.needsUpdate = true;
   return mat;
 }

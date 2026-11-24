@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { ChargeModel } from "@/components/abisso/ChargeModel";
 import { chargeModelFor } from "@/components/abisso/chargeModels";
 import { coleMPa, SOUND_MPS, type SimResult } from "@/sim/model";
+import type { ResponseReport } from "@/sim/response";
 import {
   bubbleRadius,
   bubbleRise,
@@ -261,5 +262,121 @@ export function Bubbles({ timeline, subtle }: { timeline: Timeline; subtle: bool
         </mesh>
       ))}
     </group>
+  );
+}
+
+/**
+ * Getto della bolla al primo collasso, nella direzione del vettore di anisotropia
+ * (galleggiamento + scafo + superficie, Supponen et al. 2016). Verso lo scafo arriva fino
+ * alla lamiera; verso l'alto o il basso si allunga di un raggio e mezzo.
+ */
+export function Jets({ timeline, report }: { timeline: Timeline; report: ResponseReport }) {
+  const items = useMemo(
+    () =>
+      report.charges
+        .filter((r) => r.bubble.zetaMag >= 1e-3 || r.bubble.regime.startsWith("scafo"))
+        .map((r) => {
+          const tr = timeline.tracks.find((t) => t.id === r.id)!;
+          const z = r.bubble.zeta;
+          const m = Math.hypot(...z) || 1;
+          const dir = new THREE.Vector3(z[0] / m, z[1] / m, z[2] / m);
+          const toHull = r.bubble.regime.startsWith("scafo");
+          return { r, tr, dir, toHull };
+        }),
+    [timeline, report],
+  );
+  const refs = useRef<(THREE.Group | null)[]>([]);
+  useFrame(() => {
+    const t = realNow(timeline);
+    items.forEach(({ r, tr, dir, toHull }, i) => {
+      const g = refs.current[i];
+      if (!g) return;
+      const tc = tr.tEnd + tr.periodS;
+      const span = 0.18 * tr.periodS;
+      const k = (t - (tc - 0.05 * tr.periodS)) / span;
+      g.visible = k > 0 && k < 1.6;
+      if (!g.visible) return;
+      const origin = new THREE.Vector3(tr.end[0], tr.end[1] + bubbleRise(tr, t - tr.tEnd), tr.end[2]);
+      const full = toHull ? origin.distanceTo(new THREE.Vector3(...r.hullPoint)) : 1.5 * tr.bubbleR;
+      const len = Math.max(0.2, full * Math.min(1, k));
+      g.position.copy(origin);
+      g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      g.scale.set(1, len, 1);
+      const mesh = g.children[0] as THREE.Mesh;
+      (mesh.material as THREE.MeshBasicMaterial).opacity = 0.75 * Math.max(0, 1 - Math.max(0, k - 1) / 0.6);
+    });
+  });
+  return (
+    <group>
+      {items.map(({ r, tr }, i) => (
+        <group key={r.id} ref={(g) => void (refs.current[i] = g)} visible={false}>
+          {/* Cono lungo 1 sull'asse +Y, base nell'origine: la scala Y è la lunghezza. */}
+          <mesh position={[0, 0.5, 0]}>
+            <coneGeometry args={[Math.max(0.12, tr.bubbleR * 0.12), 1, 16, 1, true]} />
+            <meshBasicMaterial color={new THREE.Color(2.2, 2.4, 2.4)} transparent depthWrite={false} toneMapped={false} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Cupola di spruzzo in superficie (Mellor 1986, eq. 15): velocità iniziale 2 P_m / (ρ c)
+ * sulla verticale, profilo radiale (1 + (r/d)²)^−1,07, poi caduta balistica. Parte quando
+ * l'onda d'urto raggiunge la superficie. Solo se il tipo di eruzione è visibile.
+ */
+export function SurfaceDome({ timeline, report, surfaceY }: { timeline: Timeline; report: ResponseReport; surfaceY: number }) {
+  const s = report.surface;
+  const track = useMemo(() => {
+    const live = timeline.tracks.filter((t) => t.yield === "full");
+    return live.length ? live.reduce((a, b) => (a.end[1] > b.end[1] ? a : b)) : null;
+  }, [timeline]);
+  const depth = track ? surfaceY - track.end[1] : 0;
+  const material = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        uniforms: { uH: { value: 0 }, uD: { value: Math.max(1, depth) } },
+        vertexShader: /* glsl */ `
+          uniform float uH;
+          uniform float uD;
+          varying float vP;
+          void main() {
+            float r = length(position.xy);
+            float prof = pow(1.0 + (r / uD) * (r / uD), -1.07);
+            vP = prof;
+            vec3 p = vec3(position.xy, uH * prof);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform float uH;
+          varying float vP;
+          void main() {
+            // Acqua sbiancata solo dove il sollevamento locale supera ~0,8 m (centro della cupola);
+            // opacità contenuta: la vista resta di studio.
+            float lift = uH * vP;
+            float foam = smoothstep(0.8, 2.0, lift);
+            gl_FragColor = vec4(vec3(0.9, 0.95, 0.95), foam * 0.4);
+          }`,
+      }),
+    [depth],
+  );
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    if (!s || !track || !ref.current) return;
+    const tau = realNow(timeline) - (track.tEnd + depth / SOUND_MPS);
+    const h = tau > 0 ? Math.max(0, s.domeMps * tau - 4.905 * tau * tau) : 0;
+    material.uniforms.uH.value = h;
+    ref.current.visible = h > 0.01;
+  });
+  if (!s || !s.visible || !track) return null;
+  const R = Math.min(160, Math.max(10, depth * 2));
+  return (
+    <mesh ref={ref} position={[track.end[0], surfaceY + 0.05, track.end[2]]} rotation={[-Math.PI / 2, 0, 0]} material={material} visible={false}>
+      <circleGeometry args={[R, 96]} />
+    </mesh>
   );
 }

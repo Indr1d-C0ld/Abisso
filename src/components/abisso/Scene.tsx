@@ -10,10 +10,12 @@ import * as THREE from "three";
 import { BoatModel } from "@/components/abisso/BoatModel";
 import { boatModelFor } from "@/components/abisso/boatModels";
 import { applyBreachMask, applyDamageTime, createDamageUniforms, updateDamageUniforms } from "@/render/hullMaterial";
-import { Bubbles, Charges, Flashes, ShockFronts } from "@/render/effects/Reconstruction";
+import { Bubbles, Charges, Flashes, Jets, ShockFronts, SurfaceDome } from "@/render/effects/Reconstruction";
+import { whipAt } from "@/render/effects/whip";
+import { responseReport, type ResponseReport } from "@/sim/response";
 import { arrivalFn } from "@/render/effects/arrival";
 import { usePlayer } from "@/render/player";
-import { buildTimeline, type Timeline } from "@/sim/timeline";
+import { buildTimeline, displayToReal, type Timeline } from "@/sim/timeline";
 import { Atlantic } from "@/render/water/Atlantic";
 import { PostFX } from "@/render/PostFX";
 
@@ -491,6 +493,7 @@ function Hull({
   interior,
   skin,
   timeline,
+  report,
   onHit,
   onFocus,
 }: {
@@ -507,6 +510,7 @@ function Hull({
   /** Doppio clic: la camera si avvicina al punto. */
   onFocus: (x: number, y: number, z: number) => void;
   timeline: Timeline;
+  report: ResponseReport;
 }) {
   const outer = useMemo(() => buildOuter(boatId), [boatId]);
   const ph = useMemo(() => buildPh(boatId), [boatId]);
@@ -552,6 +556,8 @@ function Hull({
   const shards = useRef<THREE.Group>(null);
   useFrame(() => {
     applyDamageTime(damage, arrival);
+    damage.uLoa.value = boatById(boatId).loa;
+    damage.uWhip.value = whipAt(report, timeline, displayToReal(timeline, usePlayer.getState().t));
     if (shards.current) shards.current.visible = wounds.some((w) => arrival(w.chargeId) > 0.5);
   });
   return (
@@ -912,6 +918,7 @@ function Stage({
   const atlantic = finish === "atlantico";
   const [focus, setFocus] = useState<Focus>(null);
   const timeline = useMemo(() => buildTimeline(input, result), [input, result]);
+  const report = useMemo(() => responseReport(boat, input, result), [boat, input, result]);
   // Ogni nuovo colpo (o "Ripeti lo scoppio") riparte dall'inizio.
   useEffect(() => {
     usePlayer.getState().restart(timeline.duration);
@@ -947,12 +954,14 @@ function Stage({
       )}
       <PostFX mode={finish} quality={quality} />
       <CameraRig cam={cam} loa={boat.loa} focus={focus} />
-      <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} timeline={timeline} onHit={onHit} onFocus={(x, y, z) => setFocus((f) => ({ x, y, z, n: (f?.n ?? 0) + 1 }))} />
+      <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} timeline={timeline} report={report} onHit={onHit} onFocus={(x, y, z) => setFocus((f) => ({ x, y, z, n: (f?.n ?? 0) + 1 }))} />
       <PlayerClock />
       <Charges timeline={timeline} result={result} weaponId={input.weaponId} spheres={spheres} />
       <Flashes timeline={timeline} />
       <ShockFronts timeline={timeline} result={result} subtle={atlantic} hit={hit} />
       <Bubbles timeline={timeline} subtle={atlantic} />
+      <Jets timeline={timeline} report={report} />
+      {atlantic && sea && <SurfaceDome timeline={timeline} report={report} surfaceY={timeline.surfaceY} />}
       {sel && (
         <group>
           {[sel.x0, sel.x1].map((x) => (

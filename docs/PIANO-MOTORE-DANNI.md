@@ -104,10 +104,15 @@ gli effetti passano in `src/render/`.
 barra del tempo con fattore di scala, cariche in discesa con deriva, lampo, fronti
 d'urto a 1 490 m/s con pressione di Cole, bolla con raggio e periodo del modello
 (cicli successivi e risalita dichiarati come resa), danno che compare all'arrivo
-dell'onda, lettura dell'allagamento del locale peggiore. **3b da fare**: getto della
-bolla e frusta dello scafo, dopo la verifica delle fonti (§6); cupola e spruzzo in
-superficie; il fasciame parametrico (vista senza modello 3D) mostra ancora il danno
-finale fin dall'inizio.
+dell'onda, lettura dell'allagamento del locale peggiore.
+**3b fatta**, fonti in `docs/FONTI-RISPOSTA.md`: anisotropia della bolla e regime del
+getto (Supponen 2016, Subramanian 2024), cicli e risalita (Riley 2010, Brainard 2015),
+frequenza a 2 nodi e risonanza (Yin 2014, Stettler 1995, Vernon 1986), tipo di eruzione e
+cupola in superficie (Mellor 1986 da Young 1971); pannello "Bolla, scafo e superficie".
+Restano dichiarati come resa: ampiezza della frusta (×10 a schermo, smorzamento 5%),
+forma della curva nel ciclo, risalita nel terzo ciclo. Aperti: costante del raggio della
+bolla (3,38 contro 3,36/3,50); il getto non entra nell'indice di danno; il fasciame
+parametrico (vista senza modello 3D) non mostra comparsa del danno né frusta.
 
 - `timeline.ts`: discesa delle cariche (velocità reale e deriva) → scoppio → arrivo
   dell'onda sul Druckkörper (tempo di volo a 1 490 m/s) → oscillazioni della bolla (primo

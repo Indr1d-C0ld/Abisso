@@ -1,6 +1,7 @@
 import type { SimInput } from "@/data/types";
 import { weaponById } from "@/data/weapons";
 import { SOUND_MPS, type SimResult } from "@/sim/model";
+import { CYCLE_PERIOD, CYCLE_RADIUS, migrationFirst, migrationProfile } from "@/sim/response";
 
 /**
  * Linea del tempo della ricostruzione, derivata dal risultato del modello.
@@ -13,8 +14,10 @@ import { SOUND_MPS, type SimResult } from "@/sim/model";
  * Dal modello: tempi di discesa (quota / velocità di affondamento dell'arma), deriva,
  * posizione di scoppio, tempo di volo dell'onda (distanza / 1 490 m/s), raggio massimo e
  * primo periodo della bolla, curve di allagamento.
- * Ipotesi di resa (non calcolate dal modello, dichiarate a schermo): smorzamento dei
- * cicli successivi della bolla e sua risalita.
+ * Cicli successivi della bolla: rapporti di periodo e raggio per il TNT (Swift & Decius,
+ * via Riley 2010); risalita al primo minimo da Riley 2010 / Brainard 2015 (src/sim/response.ts).
+ * Resta resa: la forma della curva entro ogni ciclo (minimo al 12% del massimo) e la
+ * risalita nel terzo ciclo (estrapolata a un quarto della prima).
  */
 
 export type SegmentId = "discesa" | "onda" | "bolla" | "allagamento";
@@ -44,6 +47,8 @@ export type ChargeTrack = {
   bubbleR: number;
   periodS: number;
   slantPh: number;
+  /** Risalita della bolla al primo minimo, m. */
+  rise1: number;
 };
 
 export type Timeline = {
@@ -57,10 +62,8 @@ export type Timeline = {
   surfaceY: number;
 };
 
-/** Ipotesi di resa per i cicli della bolla dopo il primo (dichiarate in barra). */
+/** Cicli della bolla rappresentati. */
 export const BUBBLE_CYCLES = 3;
-export const BUBBLE_AMP_RATIO = 0.6;
-export const BUBBLE_PERIOD_RATIO = 0.75;
 
 /** Durate a schermo dei segmenti, secondi. */
 const SCREEN = { discesa: 8, onda: 4.5, bolla: 7, allagamento: 8 } as const;
@@ -83,6 +86,7 @@ export function buildTimeline(input: SimInput, result: SimResult): Timeline {
       bubbleR: c.bubbleR,
       periodS: c.periodS,
       slantPh: c.slantPh,
+      rise1: c.yield === "full" ? migrationFirst(result.weq, c.depthM) : 0,
     };
   });
   const bursts = tracks.filter((t) => t.yield !== "none");
@@ -121,7 +125,7 @@ export function buildTimeline(input: SimInput, result: SimResult): Timeline {
 /** Durata dei cicli della bolla rappresentati, secondi. */
 export function cyclesSpan(period: number) {
   let s = 0;
-  for (let k = 0; k < BUBBLE_CYCLES; k++) s += period * Math.pow(BUBBLE_PERIOD_RATIO, k);
+  for (let k = 0; k < BUBBLE_CYCLES; k++) s += period * CYCLE_PERIOD[k];
   return s;
 }
 
@@ -170,32 +174,45 @@ export function chargeState(track: ChargeTrack, t: number) {
 
 /**
  * Raggio della bolla al tempo dallo scoppio τ (s). Primo ciclo dal modello (raggio
- * massimo e periodo); i cicli successivi con ampiezza ×0,6 e periodo ×0,75 (ipotesi di
- * resa). Profilo: espansione rapida, collasso brusco, minimo al 12% del massimo.
+ * massimo e periodo); cicli successivi con i rapporti TNT di Swift & Decius
+ * (periodo ×0,744 e ×0,63; raggio ×0,676 e ×0,52). Profilo nel ciclo (resa):
+ * espansione rapida, collasso brusco, minimo al 12% del massimo.
  */
 export function bubbleRadius(track: ChargeTrack, tau: number) {
-  if (track.yield !== "full" || tau < 0 || track.periodS <= 0) return 0;
-  let t = tau;
-  let amp = track.bubbleR;
-  let T = track.periodS;
-  for (let k = 0; k < BUBBLE_CYCLES; k++) {
-    if (t < T) {
-      const u = t / T;
-      return Math.max(0.12 * amp, amp * Math.pow(Math.sin(Math.PI * u), 0.55));
-    }
-    t -= T;
-    amp *= BUBBLE_AMP_RATIO;
-    T *= BUBBLE_PERIOD_RATIO;
-  }
-  return 0;
+  const c = bubbleCycle(track, tau);
+  if (!c) return 0;
+  const amp = track.bubbleR * CYCLE_RADIUS[c.k];
+  return Math.max(0.12 * amp, amp * Math.pow(Math.sin(Math.PI * c.u), 0.55));
 }
 
-/** Risalita della bolla (resa): cresce col quadrato del tempo, fino a ~1,2 raggi massimi. */
+/** Ciclo corrente (0, 1, 2) e frazione del ciclo, o null fuori dai cicli. */
+export function bubbleCycle(track: ChargeTrack, tau: number) {
+  if (track.yield !== "full" || tau < 0 || track.periodS <= 0) return null;
+  let t = tau;
+  for (let k = 0; k < BUBBLE_CYCLES; k++) {
+    const T = track.periodS * CYCLE_PERIOD[k];
+    if (t < T) return { k, u: t / T, T };
+    t -= T;
+  }
+  return null;
+}
+
+/**
+ * Risalita della bolla: Δz₁ al primo minimo con il profilo di Riley (eq. 6), metà di Δz₁
+ * in più al secondo minimo (Brainard 2015), un quarto nel terzo ciclo (estrapolazione).
+ */
 export function bubbleRise(track: ChargeTrack, tau: number) {
-  const span = cyclesSpan(track.periodS);
-  if (span <= 0 || tau <= 0) return 0;
-  const u = Math.min(1, tau / span);
-  return 1.2 * track.bubbleR * u * u;
+  const c = bubbleCycle(track, tau);
+  const r = track.rise1;
+  if (!c) return tau > 0 && track.yield === "full" ? r * 1.75 : 0;
+  if (c.k === 0) return r * migrationProfile(c.u);
+  if (c.k === 1) return r * (1 + 0.5 * c.u);
+  return r * (1.5 + 0.25 * c.u);
+}
+
+/** Primo collasso della bolla (impulso di bolla, getto), secondi reali. */
+export function firstCollapse(track: ChargeTrack) {
+  return track.yield === "full" && track.periodS > 0 ? track.tEnd + track.periodS : null;
 }
 
 /** Frazione del locale peggiore allagata al tempo reale t (curva con aria intrappolata). */

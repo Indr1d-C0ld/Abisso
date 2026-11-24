@@ -3,6 +3,10 @@ import type { SimInput } from "@/data/types";
 import { n, type SimResult } from "@/sim/model";
 import { buildTimeline, displayToReal, floodFraction, segmentAt, segmentRate, type Segment } from "@/sim/timeline";
 import { usePlayer } from "@/render/player";
+import { WHIP_VISUAL } from "@/render/effects/whip";
+import { boatById } from "@/data/boats";
+import { JET_LABEL, responseReport } from "@/sim/response";
+
 
 /** Fattore di scala del segmento, scritto come lo legge chi guarda. */
 function rateLabel(s: Segment) {
@@ -22,6 +26,8 @@ function clockLabel(s: Segment, tReal: number, tFirst: number) {
 
 export function TimelineBar({ input, result }: { input: SimInput; result: SimResult }) {
   const tl = useMemo(() => buildTimeline(input, result), [input, result]);
+  const report = useMemo(() => responseReport(boatById(input.boatId), input, result), [input, result]);
+  const main = [...report.charges].sort((a, b) => a.bubble.gammaHull - b.bubble.gammaHull)[0];
   const t = usePlayer((s) => s.t);
   const playing = usePlayer((s) => s.playing);
   const duration = usePlayer((s) => s.duration);
@@ -60,7 +66,10 @@ export function TimelineBar({ input, result }: { input: SimInput; result: SimRes
         />
         <p className="timeline-read">
           <strong>{seg.label}</strong> · {clockLabel(seg, tReal, tFirst)} · {rateLabel(seg)}
-          {seg.id === "bolla" && " · cicli dopo il primo e risalita: resa, non calcolo"}
+          {seg.id === "bolla" && main && ` · ${JET_LABEL[main.bubble.regime]} (γ ${n(main.bubble.gammaHull, 1)})`}
+          {seg.id === "bolla" &&
+            report.whipAmpM > 0.005 &&
+            ` · frusta: scafo ${n(report.hull.hz, 1)} Hz, bolla ${n(report.bubbleHz, 1)} Hz · ampiezza illustrativa ×${WHIP_VISUAL}`}
           {flood !== null && ` · ${worst}: ${n(flood * 100, 0)}% del volume (aria intrappolata)`}
         </p>
       </div>

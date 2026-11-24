@@ -154,3 +154,23 @@ export function compX(boat: Boat, a: number, b: number) {
   const half = boat.phLength / 2;
   return { x0: -half + a * boat.phLength, x1: -half + b * boat.phLength };
 }
+
+/** Punto del Druckkörper più vicino a (px, py, pz), sezione circolare per stazione. */
+export function nearestPhPoint(boat: Boat, px: number, py: number, pz: number): [number, number, number] {
+  let best = Infinity;
+  let out: [number, number, number] = [px, 0, 0];
+  for (let i = 0; i <= 72; i++) {
+    const s = stationRadii(boat, i / 72);
+    if (s.phr < 0.08) continue;
+    const rad = Math.hypot(py, pz);
+    const k = rad < 1e-4 ? 0 : s.phr / rad;
+    const cy = rad < 1e-4 ? -s.phr : py * k;
+    const cz = pz * k;
+    const d = Math.hypot(px - s.x, py - cy, pz - cz);
+    if (d < best) {
+      best = d;
+      out = [s.x, cy, cz];
+    }
+  }
+  return out;
+}
