@@ -34,9 +34,12 @@ dichiarato come tale nel codice e nell'interfaccia.
 - **Ricostruito**: Riley stampa la risalita come 12,4 W/(D+10), che darebbe 20 m per
   100 kg a 50 m. Si usa √W (12,3 come media), coerente con Brainard e con lo spostamento
   di Supponen (1,97 m contro 2,07 m nello stesso caso).
-- **Discrepanza aperta**: il modello usa 3,38 per il raggio massimo; le fonti danno 3,36
-  (Riley, cariche piccole) e 3,50 (Swisdak 1978 / Brainard, cariche grandi). Non
-  cambiato per non spostare la calibrazione dei test; da decidere.
+- **Discrepanza risolta (24/11/2026)**: il modello usava 3,38 per il raggio massimo, senza
+  fonte. Allineato a **3,50 W^(1/3) / (d + 10)^(1/3)** (Swisdak 1978, NSWC/WOL TR 76-116;
+  Brainard 2015 per le cariche grandi; 3,36 è il valore per cariche piccole). Effetto,
+  su 9 607 combinazioni di battello, arma, schema, quota e scarto: nessun esito cambiato,
+  nessun caso storico cambiato; 27 casi in cui una carica ora conta come "bolla a contatto"
+  (quasi tutti Mark X); 3 casi XXI/Squid in cui un compartimento passa da scossa a falle.
 - Resa, non fonte: forma della curva nel ciclo (minimo 12%), risalita nel terzo ciclo.
 
 ## Frusta dello scafo (`hullFrequencyHz`, `whip.ts`)

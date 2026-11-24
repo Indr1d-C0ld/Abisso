@@ -241,7 +241,7 @@ function BubbleRead({ charges, weq }: { charges: ChargeResult[]; weq: number }) 
     <div className="paper">
       <h3>Effetto della bolla</h3>
       <p className="formula">
-        R = 3,38 · W<sup>1/3</sup> / (H + 10,1)<sup>1/3</sup>
+        R = 3,50 · W<sup>1/3</sup> / (H + 10)<sup>1/3</sup>
       </p>
       <p>
         {p.id}, quota di scoppio {n(p.depthM, 0)} m. Primo massimo {n(p.bubbleR, 1)} m. Periodo di Willis {n(p.periodS, 2)} s, massimo circa a {n(p.periodS / 2, 2)} s. Non è l’onda: quella è già passata in millisecondi.

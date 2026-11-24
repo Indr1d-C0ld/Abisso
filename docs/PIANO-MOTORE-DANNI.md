@@ -110,8 +110,8 @@ getto (Supponen 2016, Subramanian 2024), cicli e risalita (Riley 2010, Brainard 
 frequenza a 2 nodi e risonanza (Yin 2014, Stettler 1995, Vernon 1986), tipo di eruzione e
 cupola in superficie (Mellor 1986 da Young 1971); pannello "Bolla, scafo e superficie".
 Restano dichiarati come resa: ampiezza della frusta (×10 a schermo, smorzamento 5%),
-forma della curva nel ciclo, risalita nel terzo ciclo. Aperti: costante del raggio della
-bolla (3,38 contro 3,36/3,50); il getto non entra nell'indice di danno; il fasciame
+forma della curva nel ciclo, risalita nel terzo ciclo. Costante del raggio della bolla
+allineata a 3,50 (Swisdak 1978). Aperti: il getto non entra nell'indice di danno; il fasciame
 parametrico (vista senza modello 3D) non mostra comparsa del danno né frusta.
 
 - `timeline.ts`: discesa delle cariche (velocità reale e deriva) → scoppio → arrivo

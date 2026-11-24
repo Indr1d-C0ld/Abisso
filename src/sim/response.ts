@@ -1,5 +1,5 @@
 import type { Boat, SimInput } from "@/data/types";
-import type { SimResult } from "@/sim/model";
+import { bubbleRadius, type SimResult } from "@/sim/model";
 import { nearestPhPoint } from "@/sim/shape";
 
 /**
@@ -165,11 +165,11 @@ export function hullFrequencyHz(opts: { lengthM: number; phDiameterM: number; pl
 
 /**
  * Tipo di eruzione in superficie in funzione di profondità / Rmax, con Rmax al primo
- * massimo e costante 3,50 [M86, tabella da Young 1971].
+ * massimo e costante 3,50, la stessa del modello [M86, tabella da Young 1971].
  */
 export function surfaceEffect(wKg: number, depthM: number) {
   const d = Math.max(0.1, depthM);
-  const rmax = (3.5 * Math.cbrt(Math.max(0, wKg))) / Math.cbrt(d + 10);
+  const rmax = bubbleRadius(wKg, d);
   const ratio = d / rmax;
   let kind: string;
   if (ratio > 40) kind = "nessun effetto visibile";

@@ -274,8 +274,16 @@ export function coleBreakdown(wKg: number, rM: number) {
   return { W, R, w13, Z, sigma, p, near: rM < 1, pUnit: 52.16 };
 }
 
+/**
+ * Primo raggio massimo della bolla, m: Rmax = 3,50 W^(1/3) / (d + 10)^(1/3), TNT.
+ * Swisdak (a cura di) 1978, NSWC/WOL TR 76-116, Explosion Effects and Properties II;
+ * lo stesso valore in Brainard 2015 per le cariche grandi (3,36 per le piccole, Swift &
+ * Decius via Riley 2010). Prima di questa versione il modello usava 3,38 senza fonte.
+ */
+export const BUBBLE_J = 3.5;
+
 export function bubbleRadius(wKg: number, depthM: number) {
-  return (3.38 * Math.cbrt(Math.max(0.1, wKg))) / Math.cbrt(Math.max(0.5, depthM) + 10.1);
+  return (BUBBLE_J * Math.cbrt(Math.max(0.1, wKg))) / Math.cbrt(Math.max(0.5, depthM) + 10);
 }
 
 /** Primo periodo di Willis, secondi. Costante metrica usuale, stesso ordine del collasso di Rayleigh. */
