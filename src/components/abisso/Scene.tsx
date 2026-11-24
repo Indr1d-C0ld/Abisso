@@ -1,19 +1,21 @@
 import { boatById } from "@/data/boats";
 import type { SimInput } from "@/data/types";
 import type { ChargeResult, HullProbe, Level, SimResult } from "@/sim/model";
-import { coleMPa, severityAtPoint, SOUND_MPS } from "@/sim/model";
+import { severityAtPoint } from "@/sim/model";
 import { outerPoint, stationRadii, towerBox } from "@/sim/shape";
-import { Html, OrbitControls } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Component, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
-import { ChargeModel } from "@/components/abisso/ChargeModel";
 import { BoatModel } from "@/components/abisso/BoatModel";
 import { boatModelFor } from "@/components/abisso/boatModels";
-import { applyBreachMask, createDamageUniforms, updateDamageUniforms } from "@/render/hullMaterial";
+import { applyBreachMask, applyDamageTime, createDamageUniforms, updateDamageUniforms } from "@/render/hullMaterial";
+import { Bubbles, Charges, Flashes, ShockFronts } from "@/render/effects/Reconstruction";
+import { arrivalFn } from "@/render/effects/arrival";
+import { usePlayer } from "@/render/player";
+import { buildTimeline, type Timeline } from "@/sim/timeline";
 import { Atlantic } from "@/render/water/Atlantic";
 import { PostFX } from "@/render/PostFX";
-import { chargeModelFor } from "@/components/abisso/chargeModels";
 
 function buildOuter(boatId: string) {
   const boat = boatById(boatId);
@@ -116,6 +118,7 @@ function damageTint(sev: number): [number, number, number] {
 }
 
 type Wound = {
+  chargeId: string;
   x: number;
   y: number;
   z: number;
@@ -175,6 +178,7 @@ function stamp(geo: THREE.BufferGeometry, charges: ChargeResult[], layer: "outer
     const iny = -by / il;
     const inz = -bz / il;
     wounds.push({
+      chargeId: c.id,
       x: bx,
       y: by,
       z: bz,
@@ -402,119 +406,6 @@ function contactOnPh(boatId: string, x: number, y: number, z: number) {
   return [px, py, pz] as const;
 }
 
-function Shocks({ shot, boatId, result, subtle }: { shot: number; boatId: string; result: SimResult; subtle: boolean }) {
-  const ref = useRef<THREE.Group>(null);
-  const start = useRef(0);
-  const clock = useThree((s) => s.clock);
-  const tag = useRef<HTMLDivElement>(null);
-  const live = result.charges.filter((c) => c.yield === "full").slice(0, 8);
-  const nearest = result.wave.passes[0];
-  const hit = useMemo(() => (live[0] ? contactOnPh(boatId, live[0].x, live[0].y, live[0].z) : null), [boatId, live]);
-  useEffect(() => {
-    start.current = clock.elapsedTime;
-  }, [shot, clock]);
-  useFrame(() => {
-    const g = ref.current;
-    if (!g || !nearest) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const elapsed = clock.elapsedTime - start.current;
-    const u = reduce ? Math.min(1, nearest.slantM / result.wave.reachM) : Math.min(1, elapsed / result.wave.screenS);
-    const radius = Math.max(0.7, u * result.wave.reachM);
-    g.children.forEach((child, i) => {
-      if (i >= live.length) return;
-      const front = child as THREE.Mesh;
-      front.scale.setScalar(radius);
-      const mat = front.material as THREE.MeshBasicMaterial;
-      // In Atlantico il fronte è un guscio additivo che si spegne del tutto dopo il passaggio.
-      mat.opacity = reduce ? (subtle ? 0.08 : 0.22) : subtle ? 0.16 * Math.pow(1 - u, 0.8) : Math.max(0.05, 0.42 * Math.pow(1 - u, 0.55));
-    });
-    const flash = g.getObjectByName("flash") as THREE.Mesh | undefined;
-    if (flash) {
-      const over = radius - nearest.slantM;
-      const mat = flash.material as THREE.MeshBasicMaterial;
-      mat.opacity = over < 0 ? 0 : Math.max(0, 0.75 * (1 - over / 8));
-    }
-    if (tag.current) {
-      const ms = (radius / SOUND_MPS) * 1000;
-      const p = coleMPa(result.weq, radius);
-      const arrived = radius >= nearest.slantM;
-      tag.current.textContent =
-        radius < 1
-          ? "Campo vicino: Cole non vale sotto il metro"
-          : `${ms.toLocaleString("it-IT", { maximumFractionDigits: 1, minimumFractionDigits: 1 })} ms · ${p.toLocaleString("it-IT", { maximumFractionDigits: 1, minimumFractionDigits: 1 })} MPa${arrived ? " · sul cilindro" : ""}`;
-    }
-  });
-  if (!live.length || !nearest || !hit) return null;
-  return (
-    <group ref={ref}>
-      {live.map((c) => (
-        <mesh key={c.id} position={[c.x, c.y, c.z]}>
-          <sphereGeometry args={[1, subtle ? 48 : 28, subtle ? 32 : 18]} />
-          <meshBasicMaterial
-            color={subtle ? "#cfe6e2" : "#c6a15a"}
-            wireframe={!subtle}
-            transparent
-            opacity={0.35}
-            depthWrite={false}
-            blending={subtle ? THREE.AdditiveBlending : THREE.NormalBlending}
-            side={subtle ? THREE.BackSide : THREE.FrontSide}
-          />
-        </mesh>
-      ))}
-      <mesh name="flash" position={hit}>
-        <sphereGeometry args={[0.45, 16, 12]} />
-        <meshBasicMaterial color="#b5523a" transparent opacity={0} depthWrite={false} />
-      </mesh>
-      <Html position={[hit[0], hit[1] + 1.2, hit[2]]} center sprite distanceFactor={22} style={{ pointerEvents: "none" }}>
-        <div className="wave-tag" ref={tag} />
-      </Html>
-    </group>
-  );
-}
-
-function Bubbles({ shot, result }: { shot: number; result: SimResult }) {
-  const ref = useRef<THREE.Group>(null);
-  const start = useRef(0);
-  const clock = useThree((s) => s.clock);
-  const live = result.charges.filter((c) => c.yield === "full" && c.bubbleR > 0).slice(0, 4);
-  const longest = Math.max(0.3, ...live.map((c) => c.periodS));
-  useEffect(() => {
-    start.current = clock.elapsedTime;
-  }, [shot, clock, result]);
-  useFrame(() => {
-    const g = ref.current;
-    if (!g) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const elapsed = clock.elapsedTime - start.current;
-    g.children.forEach((child, i) => {
-      const c = live[i];
-      if (!c) return;
-      const mesh = child as THREE.Mesh;
-      const mat = mesh.material as THREE.MeshBasicMaterial;
-      if (reduce) {
-        mesh.scale.setScalar(Math.max(0.2, c.bubbleR));
-        mat.opacity = 0.1;
-        return;
-      }
-      const span = 3.2 * (c.periodS / longest);
-      const u = Math.min(1, elapsed / span);
-      mesh.scale.setScalar(Math.max(0.15, Math.sin(Math.PI * u) * c.bubbleR));
-      mat.opacity = 0.04 + 0.14 * Math.sin(Math.PI * u);
-    });
-  });
-  if (!live.length) return null;
-  return (
-    <group ref={ref}>
-      {live.map((c) => (
-        <mesh key={c.id} position={[c.x, c.y, c.z]}>
-          <sphereGeometry args={[1, 32, 20]} />
-          <meshBasicMaterial color="#6d8a86" transparent opacity={0.08} depthWrite={false} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
 function levelColor(level: Level) {
   if (level === "rottura") return "#2a1814";
   if (level === "allagamento") return "#b5523a";
@@ -599,6 +490,7 @@ function Hull({
   cut,
   interior,
   skin,
+  timeline,
   onHit,
   onFocus,
 }: {
@@ -614,6 +506,7 @@ function Hull({
   onHit: (x: number, y: number, z: number) => void;
   /** Doppio clic: la camera si avvicina al punto. */
   onFocus: (x: number, y: number, z: number) => void;
+  timeline: Timeline;
 }) {
   const outer = useMemo(() => buildOuter(boatId), [boatId]);
   const ph = useMemo(() => buildPh(boatId), [boatId]);
@@ -654,6 +547,13 @@ function Hull({
     [damage],
   );
   useEffect(() => () => phBreach.dispose(), [phBreach]);
+  // Il danno compare quando l'onda di ciascuna carica arriva sul Druckkörper.
+  const arrival = useMemo(() => arrivalFn(timeline), [timeline]);
+  const shards = useRef<THREE.Group>(null);
+  useFrame(() => {
+    applyDamageTime(damage, arrival);
+    if (shards.current) shards.current.visible = wounds.some((w) => arrival(w.chargeId) > 0.5);
+  });
   return (
     <group
       onClick={(e) => {
@@ -698,7 +598,9 @@ function Hull({
           <BoatModel boatId={boat.id} era={era} damage={damage} planes={planes} onReady={onReady} />
         </Suspense>
       )}
-      <Shards wounds={wounds} planes={planes} />
+      <group ref={shards}>
+        <Shards wounds={wounds} planes={planes} />
+      </group>
       {interior && <InteriorFit boatId={boat.id} result={result} planes={planes} />}
       {!showSkin && <Casing boatId={boat.id} finish={finish} planes={planes} />}
       {!showSkin && <Fittings boatId={boat.id} era={era} charges={result.charges} eraCut={planes} />}
@@ -966,48 +868,10 @@ function Pennant({ boat }: { boat: ReturnType<typeof boatById> }) {
   );
 }
 
-const YIELD_COLOR = { full: "#b5523a", mechanical: "#c6a15a", none: "#8a8070" } as const;
-
-function Markers({ result, spheres, weaponId }: { result: SimResult; spheres: boolean; weaponId: string }) {
-  const show = result.charges.filter((c) => c.yield === "full");
-  const drawn = show.length > 6 ? [...show].sort((a, b) => a.slantPh - b.slantPh).slice(0, 4) : show;
-  const model = chargeModelFor(weaponId);
-  return (
-    <group>
-      {result.charges.map((c) => {
-        const sphere = (
-          <mesh position={[c.x, c.y, c.z]}>
-            <sphereGeometry args={[c.yield === "none" ? 0.28 : 0.55, 12, 10]} />
-            <meshStandardMaterial
-              color={YIELD_COLOR[c.yield]}
-              emissive={c.yield === "full" ? "#5a2418" : "#000"}
-              roughness={0.45}
-            />
-          </mesh>
-        );
-        if (!model) return <group key={c.id}>{sphere}</group>;
-        // Ordigno in scala reale; l'anello conserva il codice colore dell'esito dello scoppio.
-        return (
-          <group key={c.id}>
-            <Suspense fallback={sphere}>
-              <ChargeModel model={model} chargeId={c.id} position={[c.x, c.y, c.z]} />
-            </Suspense>
-            <mesh position={[c.x, c.y, c.z]} rotation={[Math.PI / 2, 0, 0]}>
-              <torusGeometry args={[0.62, 0.035, 8, 40]} />
-              <meshBasicMaterial color={YIELD_COLOR[c.yield]} />
-            </mesh>
-          </group>
-        );
-      })}
-      {spheres &&
-        drawn.map((c) => (
-          <mesh key={`${c.id}-r`} position={[c.x, c.y, c.z]}>
-            <sphereGeometry args={[Math.max(0.8, c.rSplit), 24, 16]} />
-            <meshBasicMaterial color="#b5523a" wireframe transparent opacity={0.2} />
-          </mesh>
-        ))}
-    </group>
-  );
+/** Avanza l'orologio della ricostruzione a ogni fotogramma. */
+function PlayerClock() {
+  useFrame((_, dt) => usePlayer.getState().tick(Math.min(dt, 0.1)));
+  return null;
 }
 
 type ViewProps = { skin: boolean; sea: boolean; quality: "alta" | "media" };
@@ -1047,6 +911,15 @@ function Stage({
   const { scene, gl } = useThree();
   const atlantic = finish === "atlantico";
   const [focus, setFocus] = useState<Focus>(null);
+  const timeline = useMemo(() => buildTimeline(input, result), [input, result]);
+  // Ogni nuovo colpo (o "Ripeti lo scoppio") riparte dall'inizio.
+  useEffect(() => {
+    usePlayer.getState().restart(timeline.duration);
+  }, [timeline, shot]);
+  const hit = useMemo(() => {
+    const live = result.charges.filter((c) => c.yield === "full").sort((a, b) => a.slantPh - b.slantPh)[0];
+    return live ? ([...contactOnPh(boat.id, live.x, live.y, live.z)] as [number, number, number]) : null;
+  }, [result, boat.id]);
   useLayoutEffect(() => {
     // Il tone mapping lo fa PostFX; l'esposizione resta quella di prima.
     gl.toneMapping = THREE.NoToneMapping;
@@ -1074,10 +947,12 @@ function Stage({
       )}
       <PostFX mode={finish} quality={quality} />
       <CameraRig cam={cam} loa={boat.loa} focus={focus} />
-      <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} onHit={onHit} onFocus={(x, y, z) => setFocus((f) => ({ x, y, z, n: (f?.n ?? 0) + 1 }))} />
-      <Markers result={result} spheres={spheres} weaponId={input.weaponId} />
-      <Shocks shot={shot} boatId={boat.id} result={result} subtle={atlantic} />
-      <Bubbles shot={shot} result={result} />
+      <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} timeline={timeline} onHit={onHit} onFocus={(x, y, z) => setFocus((f) => ({ x, y, z, n: (f?.n ?? 0) + 1 }))} />
+      <PlayerClock />
+      <Charges timeline={timeline} result={result} weaponId={input.weaponId} spheres={spheres} />
+      <Flashes timeline={timeline} />
+      <ShockFronts timeline={timeline} result={result} subtle={atlantic} hit={hit} />
+      <Bubbles timeline={timeline} subtle={atlantic} />
       {sel && (
         <group>
           {[sel.x0, sel.x1].map((x) => (

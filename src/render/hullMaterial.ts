@@ -17,6 +17,8 @@ export const MAX_CHARGES = 32;
 export const MAX_WOUNDS = 32;
 
 export type Wound = {
+  /** Carica che l'ha prodotta (per la comparsa nel tempo). */
+  chargeId?: string;
   x: number;
   y: number;
   z: number;
@@ -56,18 +58,30 @@ export function chargeTerms(c: ChargeResult) {
   return { radius: Math.max(0.45, c.rSplit * OUTER_FACTOR), k: c.yield === "mechanical" ? 0.35 : 1 };
 }
 
+type DamageMeta = {
+  chargeIds: string[];
+  baseK: number[];
+  woundCharge: (string | undefined)[];
+  baseHole: number[];
+  baseAmp: number[];
+};
+const META = new WeakMap<DamageUniforms, DamageMeta>();
+
 export function updateDamageUniforms(
   u: DamageUniforms,
   charges: ChargeResult[],
   wounds: Wound[],
   mode: "controllo" | "atlantico",
 ) {
+  const meta: DamageMeta = { chargeIds: [], baseK: [], woundCharge: [], baseHole: [], baseAmp: [] };
   let n = 0;
   for (const c of charges) {
     const t = chargeTerms(c);
     if (!t || n >= MAX_CHARGES) continue;
     u.uCharges.value[n].set(c.x, c.y, c.z, t.radius);
     u.uChargeK.value[n] = t.k;
+    meta.chargeIds.push(c.id);
+    meta.baseK.push(t.k);
     n++;
   }
   u.uChargeCount.value = n;
@@ -76,10 +90,32 @@ export function updateDamageUniforms(
     if (m >= MAX_WOUNDS) break;
     u.uWounds.value[m].set(w.x, w.y, w.z, w.hole);
     u.uWoundsB.value[m].set(w.dentR, w.amp, w.iny, w.inz);
+    meta.woundCharge.push(w.chargeId);
+    meta.baseHole.push(w.hole);
+    meta.baseAmp.push(w.amp);
     m++;
   }
   u.uWoundCount.value = m;
   u.uMode.value = mode === "atlantico" ? 1 : 0;
+  META.set(u, meta);
+}
+
+/**
+ * Comparsa nel tempo: `arrival(chargeId)` in [0, 1] scala la gravità di quella carica,
+ * l'ampiezza delle ammaccature e apre lo squarcio (raggio da 0 al valore pieno).
+ * Con arrival sempre 1 si torna allo stato finale calcolato.
+ */
+export function applyDamageTime(u: DamageUniforms, arrival: (chargeId: string) => number) {
+  const meta = META.get(u);
+  if (!meta) return;
+  meta.chargeIds.forEach((id, i) => {
+    u.uChargeK.value[i] = meta.baseK[i] * arrival(id);
+  });
+  meta.woundCharge.forEach((id, i) => {
+    const a = id ? arrival(id) : 1;
+    u.uWounds.value[i].w = meta.baseHole[i] * THREE.MathUtils.smoothstep(a, 0.2, 1);
+    u.uWoundsB.value[i].y = meta.baseAmp[i] * a;
+  });
 }
 
 const COMMON = /* glsl */ `

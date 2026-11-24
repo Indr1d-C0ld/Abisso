@@ -99,6 +99,16 @@ gli effetti passano in `src/render/`.
 - Paratie: stato visibile (piegata, tenuta, ceduta) per compartimento.
 
 ### Fase 3 — Ricostruzione nel tempo
+
+**Stato (24/11/2026): 3a fatta.** `src/sim/timeline.ts` (con test), lettore con `?t=`,
+barra del tempo con fattore di scala, cariche in discesa con deriva, lampo, fronti
+d'urto a 1 490 m/s con pressione di Cole, bolla con raggio e periodo del modello
+(cicli successivi e risalita dichiarati come resa), danno che compare all'arrivo
+dell'onda, lettura dell'allagamento del locale peggiore. **3b da fare**: getto della
+bolla e frusta dello scafo, dopo la verifica delle fonti (§6); cupola e spruzzo in
+superficie; il fasciame parametrico (vista senza modello 3D) mostra ancora il danno
+finale fin dall'inizio.
+
 - `timeline.ts`: discesa delle cariche (velocità reale e deriva) → scoppio → arrivo
   dell'onda sul Druckkörper (tempo di volo a 1 490 m/s) → oscillazioni della bolla (primo
   periodo dal modello, ampiezze smorzate, risalita) → eventuale getto verso lo scafo se la
