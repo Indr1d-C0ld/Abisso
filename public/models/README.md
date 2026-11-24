@@ -40,11 +40,13 @@ Nel IIB il `jumping_wire` è generato fuori asse e viene nascosto.
 
 | File | Classe | Lunghezza × baglio × pescaggio | Stato | Thrixel |
 |---|---|---|---|---|
-| `uboat-iib.glb` | Tipo IIB | 42,7 × 4,08 × 3,9 m | dal catalogo | `2ea80a3a` |
-| `uboat-viic.glb` | Tipo VIIC | 67,1 × 6,2 × 4,74 m | dal catalogo | `1a6f0ec1` → ridotto `4c11cdca` |
-| `uboat-ixc.glb` | Tipo IXC | 76,8 × 6,76 × 4,7 m | dal catalogo | `2b27621b` → ridotto `a117a435` |
-| `uboat-xb.glb` | Tipo XB | 89,8 × 9,2 × 4,71 m | dal catalogo | `b506c449` → ridotto `10bb7b6a` |
-| `uboat-xxi.glb` | Tipo XXI | 76,7 × 6,6 × 6,32 m | dal catalogo | `80b0dc0c` |
+| `uboat-iib.glb` | Tipo IIB | 42,7 × 4,08 × 3,9 m | dal catalogo; altezza corretta in codice (×0,85): due edit falliti | `2ea80a3a` |
+| `uboat-viic.glb` | Tipo VIIC 1941 | 67,1 × 6,2 × 4,74 m | dal catalogo; altezza corretta con edit | `1a6f0ec1` → edit `8a86a74b` → ridotto `f9000989` |
+| `uboat-viic-1944.glb` | Tipo VIIC 1944: Wintergarten, schnorchel, senza cannone | come sopra | edit del precedente; texture più scura | `c9254d52` → ridotto `ab02dd2a` |
+| `uboat-ixc.glb` | Tipo IXC 1942 | 76,8 × 6,76 × 4,7 m | dal catalogo; altezza corretta con edit | `2b27621b` → edit `6d4df89a` → ridotto `de3874bb` |
+| `uboat-ixc-1944.glb` | Tipo IXC 1944: Wintergarten, schnorchel, senza cannone | come sopra | edit del precedente | `2d036a5e` → ridotto `5788e30f` |
+| `uboat-xb.glb` | Tipo XB | 89,8 × 9,2 × 4,71 m | dal catalogo; altezza corretta con edit (esatta) | `b506c449` → edit `fc5b4aa9` → ridotto `00fe4856` |
+| `uboat-xxi.glb` | Tipo XXI | 76,7 × 6,6 × 6,32 m | dal catalogo; altezza corretta con edit (esatta), vela allungata | `80b0dc0c` → edit `0ae7eb44` → ridotto `de1105a5` |
 
 ## Discrepanze trovate nelle fonti
 

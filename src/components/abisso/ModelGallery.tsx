@@ -3,22 +3,31 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { BoatModel } from "@/components/abisso/BoatModel";
-import { BOAT_MODELS } from "@/components/abisso/boatModels";
+import { BOAT_MODELS, type BoatModelDef } from "@/components/abisso/boatModels";
 import { CHARGE_MODELS, type ChargeModelId } from "@/components/abisso/chargeModels";
 import { BOATS } from "@/data/boats";
-import type { Family } from "@/data/types";
+import type { Era, Family } from "@/data/types";
 import { outerPoint } from "@/sim/shape";
 
 type Entry =
-  | { kind: "boat"; id: string; family: Family; label: string; size: number }
+  | { kind: "boat"; id: string; family: Family; era: Era; label: string; size: number }
   | { kind: "charge"; id: ChargeModelId; label: string; size: number };
 
 const BOAT_FOR_FAMILY: Record<Family, string> = { II: "ii-b", VII: "vii-c", IX: "ix-c", XB: "xb", XXI: "xxi" };
 
 const ENTRIES: Entry[] = [
-  ...(Object.keys(BOAT_MODELS) as Family[]).map((f) => {
+  ...(Object.keys(BOAT_MODELS) as Family[]).flatMap((f) => {
     const boat = BOATS.find((b) => b.id === BOAT_FOR_FAMILY[f])!;
-    return { kind: "boat" as const, id: boat.id, family: f, label: `${BOAT_MODELS[f].label} · ${BOAT_MODELS[f].config}`, size: boat.loa };
+    const m = BOAT_MODELS[f];
+    const one = (era: Era, def: BoatModelDef) => ({
+      kind: "boat" as const,
+      id: era === "1944" ? `${boat.id}@1944` : boat.id,
+      family: f,
+      era,
+      label: `${def.label} · ${def.config}`,
+      size: boat.loa,
+    });
+    return m.late ? [one("1941", m.base), one("1944", m.late)] : [one("1941", m.base)];
   }),
   ...(Object.keys(CHARGE_MODELS) as ChargeModelId[]).map((id) => ({
     kind: "charge" as const,
@@ -66,7 +75,7 @@ function ChargePreview({ id }: { id: ChargeModelId }) {
 
 function Dimensions({ entry }: { entry: Entry }) {
   if (entry.kind === "charge") return null;
-  const boat = BOATS.find((b) => b.id === entry.id)!;
+  const boat = BOATS.find((b) => b.id === entry.id.split("@")[0])!;
   return (
     <p className="note">
       Catalogo: {boat.loa.toLocaleString("it-IT")} m × {boat.beam.toLocaleString("it-IT")} m, pescaggio{" "}
@@ -140,9 +149,9 @@ export function ModelGallery() {
             <directionalLight position={[d, d * 1.5, d * 0.8]} intensity={2.2} />
             <directionalLight position={[-d, d * 0.4, -d]} intensity={0.6} />
             <Suspense fallback={null}>
-              {entry.kind === "boat" ? <BoatModel boatId={entry.id} /> : <ChargePreview id={entry.id} />}
+              {entry.kind === "boat" ? <BoatModel boatId={entry.id.split("@")[0]} era={entry.era} /> : <ChargePreview id={entry.id} />}
             </Suspense>
-            {entry.kind === "boat" && overlay && <CalcHull boatId={entry.id} />}
+            {entry.kind === "boat" && overlay && <CalcHull boatId={entry.id.split("@")[0]} />}
             <OrbitControls makeDefault enableDamping />
           </Canvas>
         </GlBoundary>

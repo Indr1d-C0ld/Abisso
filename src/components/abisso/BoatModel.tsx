@@ -2,19 +2,34 @@ import { useGLTF } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
 import { boatById } from "@/data/boats";
-import { BOAT_MODELS } from "@/components/abisso/boatModels";
+import { boatModelFor } from "@/components/abisso/boatModels";
+import type { Era } from "@/data/types";
 import { stationRadii } from "@/sim/shape";
 
 /**
  * Scafo Thrixel allineato al sistema di riferimento del calcolo (prua +X, asse del
  * Druckkörper a y = 0). È solo rivestimento: il danno si calcola sullo scafo parametrico.
  */
-export function BoatModel({ boatId }: { boatId: string }) {
+export function BoatModel({ boatId, era = "1941" }: { boatId: string; era?: Era }) {
   const boat = boatById(boatId);
-  const def = BOAT_MODELS[boat.family];
+  const def = boatModelFor(boat.family, era);
   const { scene } = useGLTF(def.url);
   const object = useMemo(() => {
     const model = scene.clone(true);
+    // Alcuni GLB (es. VIIC 1944) portano sia colori per vertice sia una texture di colore:
+    // three.js li moltiplica e lo scafo esce quasi nero. Dove c'è la texture vale quella.
+    model.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh || !mesh.geometry.getAttribute("color")) return;
+      const fix = (m: THREE.Material) => {
+        const sm = m as THREE.MeshStandardMaterial;
+        if (!sm.map || !sm.vertexColors) return m;
+        const c = sm.clone();
+        c.vertexColors = false;
+        return c;
+      };
+      mesh.material = Array.isArray(mesh.material) ? mesh.material.map(fix) : fix(mesh.material);
+    });
     for (const name of def.hide) {
       const o = model.getObjectByName(name);
       if (o) o.visible = false;
