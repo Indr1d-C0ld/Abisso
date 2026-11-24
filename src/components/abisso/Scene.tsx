@@ -12,6 +12,8 @@ import { boatModelFor } from "@/components/abisso/boatModels";
 import { applyBreachMask, applyDamageTime, createDamageUniforms, updateDamageUniforms } from "@/render/hullMaterial";
 import { Bubbles, Charges, Flashes, Jets, ShockFronts, SurfaceDome } from "@/render/effects/Reconstruction";
 import { whipAt } from "@/render/effects/whip";
+import { Petals } from "@/render/effects/Petals";
+import { FRAME_SPACING, petalCount, plateResponse } from "@/sim/plate";
 import { responseReport, type ResponseReport } from "@/sim/response";
 import { arrivalFn } from "@/render/effects/arrival";
 import { usePlayer } from "@/render/player";
@@ -121,6 +123,9 @@ function damageTint(sev: number): [number, number, number] {
 
 type Wound = {
   chargeId: string;
+  dish?: number;
+  petals?: number;
+  phase?: number;
   x: number;
   y: number;
   z: number;
@@ -525,11 +530,21 @@ function Hull({
     };
   }, [outer, ph, plate]);
   useLayoutEffect(() => {
-    const w = paint(outer, result.charges, "outer");
+    const boatNow = boatById(boatId);
+    const plates = new Map(result.charges.filter((c) => c.yield === "full").map((c) => [c.id, plateResponse(boatNow, c)]));
+    // Ogni ferita riceve la freccia fra le ordinate della sua carica (Nurick–Martin, al vero,
+    // limitata a 0,4 m oltre il campo delle prove) e, se è uno squarcio, i suoi petali.
+    const w = paint(outer, result.charges, "outer").map((x, i) => ({
+      ...x,
+      dish: Math.min(0.4, plates.get(x.chargeId)?.deflectionM ?? 0),
+      petals: x.hole > 0 ? petalCount(`${x.chargeId}-${i}`) : 0,
+      phase: (i * 2.399963) % (2 * Math.PI),
+    }));
     paint(ph, result.charges, "ph");
     setWounds(w);
     updateDamageUniforms(damage, result.charges, w, finish);
-  }, [outer, ph, result, damage, finish]);
+    damage.uFrameS.value = FRAME_SPACING[boatNow.family].m;
+  }, [outer, ph, result, damage, finish, boatId]);
   const clip = useMemo(() => [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.05)], []);
   const none = useMemo<THREE.Plane[]>(() => [], []);
   const planes = cut ? clip : none;
@@ -538,10 +553,18 @@ function Hull({
   const open = wounds.some((w) => w.hole > 0);
   const modelUrl = boatModelFor(boat.family, era).url;
   const [readyUrl, setReadyUrl] = useState<string | null>(null);
-  const onReady = useCallback(() => setReadyUrl(modelUrl), [modelUrl]);
+  const [skinObj, setSkinObj] = useState<THREE.Object3D | null>(null);
+  const onReady = useCallback(
+    (o: THREE.Object3D) => {
+      setReadyUrl(modelUrl);
+      setSkinObj(o);
+    },
+    [modelUrl],
+  );
   const wantSkin = skin && !ghost;
   // Il fasciame parametrico si nasconde solo quando il modello è davvero caricato.
   const showSkin = wantSkin && readyUrl === modelUrl;
+  const petalWounds = useMemo(() => (showSkin ? onSkin(wounds, skinObj) : wounds), [showSkin, wounds, skinObj]);
   const phBreach = useMemo(
     () =>
       applyBreachMask(
@@ -605,34 +628,11 @@ function Hull({
         </Suspense>
       )}
       <group ref={shards}>
-        <Shards wounds={wounds} planes={planes} />
+        <Petals wounds={petalWounds} planes={planes} atlantic={finish === "atlantico"} />
       </group>
       {interior && <InteriorFit boatId={boat.id} result={result} planes={planes} />}
       {!showSkin && <Casing boatId={boat.id} finish={finish} planes={planes} />}
       {!showSkin && <Fittings boatId={boat.id} era={era} charges={result.charges} eraCut={planes} />}
-    </group>
-  );
-}
-
-function Shards({ wounds, planes }: { wounds: Wound[]; planes: THREE.Plane[] }) {
-  const torn = wounds.filter((w) => w.hole > 0.2);
-  if (!torn.length) return null;
-  return (
-    <group>
-      {torn.map((w, i) => (
-        <group key={i}>
-          {[0, 1, 2].map((k) => (
-            <mesh
-              key={k}
-              position={[w.x + w.ox * (0.28 + k * 0.22), w.y + w.oy * (0.28 + k * 0.22) + (k - 1) * 0.14, w.z + w.oz * (0.28 + k * 0.22)]}
-              rotation={[0.35 * k, 0.9 * k, 0.25 * k]}
-            >
-              <boxGeometry args={[w.hole * 0.95, 0.05, w.hole * 0.4]} />
-              <meshStandardMaterial color="#3a2c26" metalness={0.42} roughness={0.68} side={THREE.DoubleSide} clippingPlanes={planes} />
-            </mesh>
-          ))}
-        </group>
-      ))}
     </group>
   );
 }
@@ -872,6 +872,26 @@ function Pennant({ boat }: { boat: ReturnType<typeof boatById> }) {
       </mesh>
     </group>
   );
+}
+
+/**
+ * Il centro delle ferite sta sullo scafo parametrico; il rivestimento Thrixel può essere
+ * più basso o più stretto. Per ancorare i petali alla lamiera vera si cerca il punto del
+ * rivestimento lungo la direzione verso l'interno (raggio da 4 m fuori).
+ */
+const SKIN_RAY = new THREE.Raycaster();
+function onSkin(wounds: Wound[], skin: THREE.Object3D | null): Wound[] {
+  if (!skin) return wounds;
+  skin.updateMatrixWorld(true);
+  return wounds.map((w) => {
+    if (w.hole <= 0) return w;
+    const dir = new THREE.Vector3(0, w.iny, w.inz).normalize();
+    const origin = new THREE.Vector3(w.x, w.y, w.z).addScaledVector(dir, -4);
+    SKIN_RAY.set(origin, dir);
+    SKIN_RAY.far = 9;
+    const hit = SKIN_RAY.intersectObject(skin, true)[0];
+    return hit ? { ...w, x: hit.point.x, y: hit.point.y, z: hit.point.z } : w;
+  });
 }
 
 /** Avanza l'orologio della ricostruzione a ogni fotogramma. */

@@ -5,6 +5,7 @@ import { boatById } from "@/data/boats";
 import { boatModelFor } from "@/components/abisso/boatModels";
 import type { Era } from "@/data/types";
 import { applyDamage, type DamageUniforms } from "@/render/hullMaterial";
+import { densify } from "@/render/densify";
 import { stationRadii } from "@/sim/shape";
 
 /**
@@ -23,7 +24,8 @@ export function BoatModel({
   /** Uniform condivisi del danno (src/render/hullMaterial.ts); senza, il modello è intatto. */
   damage?: DamageUniforms;
   planes?: THREE.Plane[];
-  onReady?: () => void;
+  /** Chiamata a modello pronto, con l'oggetto già allineato al sistema del calcolo. */
+  onReady?: (object: THREE.Object3D) => void;
 }) {
   const boat = boatById(boatId);
   const def = boatModelFor(boat.family, era);
@@ -52,6 +54,12 @@ export function BoatModel({
       };
       mesh.material = Array.isArray(mesh.material) ? mesh.material.map(fix) : fix(mesh.material);
     });
+    // Nello Studio (con il danno) le mesh grandi vengono infittite per le ammaccature.
+    if (damage) {
+      const t0 = performance.now();
+      const stat = densify(model);
+      model.userData.densify = { ...stat, ms: Math.round(performance.now() - t0) };
+    }
     for (const name of def.hide) {
       const o = model.getObjectByName(name);
       if (o) o.visible = false;
@@ -96,7 +104,7 @@ export function BoatModel({
     });
   }, [object, planes]);
   useEffect(() => {
-    onReady?.();
+    onReady?.(object);
   }, [object, onReady]);
   return <primitive object={object} />;
 }

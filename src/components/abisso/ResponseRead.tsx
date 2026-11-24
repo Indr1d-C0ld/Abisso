@@ -4,12 +4,15 @@ import type { SimInput } from "@/data/types";
 import { WHIP_DAMPING, WHIP_VISUAL } from "@/render/effects/whip";
 import { n, type SimResult } from "@/sim/model";
 import { JET_LABEL, responseReport } from "@/sim/response";
+import { plateReport, STEEL_YIELD_PA } from "@/sim/plate";
 
 /** Bolla, scafo e superficie: le grandezze della Fase 3b, con le fonti e le ipotesi. */
 export function ResponseRead({ input, result }: { input: SimInput; result: SimResult }) {
   const boat = boatById(input.boatId);
   const rep = useMemo(() => responseReport(boat, input, result), [boat, input, result]);
   const main = [...rep.charges].sort((a, b) => a.bubble.gammaHull - b.bubble.gammaHull)[0];
+  const plate = useMemo(() => plateReport(boat, result), [boat, result]);
+  const nearest = [...plate.charges].sort((a, b) => b.phi - a.phi)[0];
   if (!main) {
     return (
       <div className="paper">
@@ -40,6 +43,18 @@ export function ResponseRead({ input, result }: { input: SimInput; result: SimRe
         {n(main.modal, 2)} (0 ai nodi). Ampiezza: {rep.whipAmpM > 0.005 ? `${n(rep.whipAmpM * 100, 0)} cm al centro` : "trascurabile"},
         scala illustrativa, mostrata ×{WHIP_VISUAL} con smorzamento {n(WHIP_DAMPING * 100, 0)}% ipotizzato.
       </p>
+      {nearest && (
+        <p>
+          <strong>Lamiera.</strong> Fra due ordinate (passo {n(plate.frame.m * 1000, 0)} mm,{" "}
+          {plate.frame.source}) con lamiera di {n(plate.thicknessM * 1000, 1)} mm e
+          acciaio St 52 ({n(STEEL_YIELD_PA / 1e6, 0)} MPa): impulso {n(nearest.impulsePaS / 1000, 1)} kPa·s, numero di danno φ ={" "}
+          {n(nearest.phi, 1)}, freccia permanente {n(nearest.deflectionM * 1000, 0)} mm ({n(nearest.ratio, 1)} spessori)
+          {nearest.beyond ? ", oltre il campo delle prove: solo indicativa" : ""}. È la deformazione di una piastra piana senza
+          precarico idrostatico (Nurick e Martin, aggiornamento Yuen et al. 2017), estrapolata da prove su lamiere di pochi
+          millimetri, con l'impulso di Cole non corretto per l'interazione acqua–lamiera. Il verdetto resta l'indice del
+          modello: a quota il guscio cede per instabilità fra le ordinate, che questa formula non vede.
+        </p>
+      )}
       {s && (
         <p>
           <strong>Superficie.</strong> Profondità / Rmax = {n(s.ratio, 1)}: {s.kind}. Velocità iniziale della cupola{" "}
@@ -49,7 +64,8 @@ export function ResponseRead({ input, result }: { input: SimInput; result: SimRe
       <p className="note" style={{ color: "inherit" }}>
         Fonti: Supponen et al. 2016 e Subramanian et al. 2024 (getto); Riley 2010 e Brainard 2015 (cicli e risalita; il √W
         è ricostruito confrontando le due); Yin et al. 2014, Stettler 1995, Vernon 1986 (frusta); Mellor 1986 da Young
-        1971 (superficie). Dettagli in docs/FONTI-RISPOSTA.md.
+        1971 (superficie); Yuen et al. 2017, ONI 1941 e rapporti di Portsmouth 1946 (lamiera e ordinate),
+        Wierzbicki 1999 (petali). Dettagli in docs/FONTI-RISPOSTA.md e docs/FONTI-LAMIERA.md.
       </p>
     </div>
   );

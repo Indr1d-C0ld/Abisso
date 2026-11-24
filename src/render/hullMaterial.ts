@@ -27,6 +27,12 @@ export type Wound = {
   amp: number;
   iny: number;
   inz: number;
+  /** Freccia permanente fra le ordinate (Nurick–Martin), m. */
+  dish?: number;
+  /** Numero di petali dello squarcio. */
+  petals?: number;
+  /** Fase angolare dei petali, rad. */
+  phase?: number;
 };
 
 export type DamageUniforms = {
@@ -35,7 +41,11 @@ export type DamageUniforms = {
   uChargeCount: { value: number };
   uWounds: { value: THREE.Vector4[] };
   uWoundsB: { value: THREE.Vector4[] };
+  /** (freccia fra le ordinate, petali, fase, 0). */
+  uWoundsC: { value: THREE.Vector4[] };
   uWoundCount: { value: number };
+  /** Passo delle ordinate, m. */
+  uFrameS: { value: number };
   /** 0 = Controllo (scala analitica della legenda), 1 = Atlantico (resa realistica). */
   uMode: { value: number };
   /** Spostamento verticale della frusta alle estremità, m (già moltiplicato per seno e smorzamento). */
@@ -50,7 +60,9 @@ export function createDamageUniforms(): DamageUniforms {
     uChargeCount: { value: 0 },
     uWounds: { value: Array.from({ length: MAX_WOUNDS }, () => new THREE.Vector4()) },
     uWoundsB: { value: Array.from({ length: MAX_WOUNDS }, () => new THREE.Vector4()) },
+    uWoundsC: { value: Array.from({ length: MAX_WOUNDS }, () => new THREE.Vector4()) },
     uWoundCount: { value: 0 },
+    uFrameS: { value: 0.6 },
     uMode: { value: 0 },
     uWhip: { value: 0 },
     uLoa: { value: 67 },
@@ -69,6 +81,7 @@ type DamageMeta = {
   woundCharge: (string | undefined)[];
   baseHole: number[];
   baseAmp: number[];
+  baseDish: number[];
 };
 const META = new WeakMap<DamageUniforms, DamageMeta>();
 
@@ -78,7 +91,7 @@ export function updateDamageUniforms(
   wounds: Wound[],
   mode: "controllo" | "atlantico",
 ) {
-  const meta: DamageMeta = { chargeIds: [], baseK: [], woundCharge: [], baseHole: [], baseAmp: [] };
+  const meta: DamageMeta = { chargeIds: [], baseK: [], woundCharge: [], baseHole: [], baseAmp: [], baseDish: [] };
   let n = 0;
   for (const c of charges) {
     const t = chargeTerms(c);
@@ -95,6 +108,8 @@ export function updateDamageUniforms(
     if (m >= MAX_WOUNDS) break;
     u.uWounds.value[m].set(w.x, w.y, w.z, w.hole);
     u.uWoundsB.value[m].set(w.dentR, w.amp, w.iny, w.inz);
+    u.uWoundsC.value[m].set(w.dish ?? 0, w.petals ?? 0, w.phase ?? 0, 0);
+    meta.baseDish.push(w.dish ?? 0);
     meta.woundCharge.push(w.chargeId);
     meta.baseHole.push(w.hole);
     meta.baseAmp.push(w.amp);
@@ -120,6 +135,7 @@ export function applyDamageTime(u: DamageUniforms, arrival: (chargeId: string) =
     const a = id ? arrival(id) : 1;
     u.uWounds.value[i].w = meta.baseHole[i] * THREE.MathUtils.smoothstep(a, 0.2, 1);
     u.uWoundsB.value[i].y = meta.baseAmp[i] * a;
+    u.uWoundsC.value[i].x = meta.baseDish[i] * a;
   });
 }
 
@@ -131,7 +147,9 @@ uniform float uChargeK[MAX_CHARGES];
 uniform int uChargeCount;
 uniform vec4 uWounds[MAX_WOUNDS];
 uniform vec4 uWoundsB[MAX_WOUNDS];
+uniform vec4 uWoundsC[MAX_WOUNDS];
 uniform int uWoundCount;
+uniform float uFrameS;
 uniform float uMode;
 uniform float uWhip;
 uniform float uLoa;
@@ -154,6 +172,10 @@ for ( int i = 0; i < MAX_WOUNDS; i++ ) {
   if ( d < r ) {
     float u = 1.0 - d / r;
     dmgWorld.yz += uWoundsB[i].zw * uWoundsB[i].y * u * u;
+    // Cuscini fra le ordinate: la lamiera rientra fra un anello e l'altro (Nurick–Martin),
+    // le ordinate restano. Profilo sin² lungo lo scafo, inviluppo radiale u.
+    float fr = sin( 3.14159265 * dmgP.x / uFrameS );
+    dmgWorld.yz += uWoundsB[i].zw * uWoundsC[i].x * u * fr * fr;
   }
 }
 dmgWorld.y += uWhip * whipMode( dmgP.x / uLoa + 0.5 );
@@ -224,7 +246,16 @@ for ( int i = 0; i < MAX_WOUNDS; i++ ) {
   if ( h <= 0.0 ) continue;
   float d = distance( vDmgWorld, uWounds[i].xyz );
   // Bordo strappato: il raggio dello squarcio oscilla col rumore, a scala di lamiera.
-  float jag = ( dmgNoise( vDmgWorld * 2.6 ) - 0.5 ) * 0.55 + ( dmgNoise( vDmgWorld * 9.0 ) - 0.5 ) * 0.18;
+  float jag = ( dmgNoise( vDmgWorld * 2.6 ) - 0.5 ) * 0.4 + ( dmgNoise( vDmgWorld * 9.0 ) - 0.5 ) * 0.18;
+  // Radici dei petali: il bordo si incava fra un petalo e l'altro (n lobi attorno allo squarcio).
+  float petals = uWoundsC[i].y;
+  if ( petals > 0.5 ) {
+    vec3 nIn = vec3( 0.0, uWoundsB[i].z, uWoundsB[i].w );
+    vec3 t2 = vec3( 0.0, nIn.z, -nIn.y );
+    vec3 v = vDmgWorld - uWounds[i].xyz;
+    float th = atan( dot( v, t2 ), v.x );
+    jag += 0.16 * cos( petals * th + uWoundsC[i].z );
+  }
   float edge = h * ( 1.0 + jag );
   if ( d < edge ) discard;
   dmgRim = max( dmgRim, 1.0 - smoothstep( edge, edge + h * 0.6, d ) );
@@ -291,7 +322,7 @@ export function applyDamage(mat: THREE.MeshStandardMaterial, uniforms: DamageUni
       .replace("#include <metalnessmap_fragment>", `#include <metalnessmap_fragment>\n${FRAGMENT_METAL}`)
       .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>\n${FRAGMENT_NORMAL}`);
   };
-  mat.customProgramCacheKey = () => "abisso-damage-v3";
+  mat.customProgramCacheKey = () => "abisso-damage-v4";
   mat.needsUpdate = true;
   return mat;
 }
@@ -339,7 +370,7 @@ export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: Damag
         }`,
       );
   };
-  mat.customProgramCacheKey = () => "abisso-breach-v3";
+  mat.customProgramCacheKey = () => "abisso-breach-v4";
   mat.needsUpdate = true;
   return mat;
 }

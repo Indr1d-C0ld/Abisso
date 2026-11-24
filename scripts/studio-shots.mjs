@@ -2,7 +2,7 @@
 // node scripts/studio-shots.mjs [url] [preset...]   (preset = testo del pulsante)
 // Opzioni via env: FINISH=Atlantico, ZOOM=n (scatti di rotella), CAM=Traverso,
 // FOCUS=fx,fy (doppio clic in quel punto della vista, frazioni 0–1), SUFFIX=testo,
-// INPUT='{"axisDepth":26,...}' (caso caricato prima dell'avvio). Preset "-" = nessun clic.
+// ZOOMAT=fx,fy (punto verso cui zoomare), INPUT='{"axisDepth":26,...}' (caso caricato prima dell'avvio). Preset "-" = nessun clic.
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 const args = process.argv.slice(2);
@@ -30,7 +30,8 @@ for (const preset of presets) {
   await p.waitForTimeout(6000);
   const box = await p.locator(".viewport canvas").boundingBox();
   if (process.env.ZOOM && box) {
-    await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const [zx, zy] = (process.env.ZOOMAT ?? "0.5,0.5").split(",").map(Number);
+    await p.mouse.move(box.x + box.width * zx, box.y + box.height * zy);
     for (let i = 0; i < Number(process.env.ZOOM); i++) {
       await p.mouse.wheel(0, -250);
       await p.waitForTimeout(80);
