@@ -335,6 +335,10 @@ export function App() {
   const setCam = useAbisso((s) => s.setCam);
   const finish = useAbisso((s) => s.finish);
   const setFinish = useAbisso((s) => s.setFinish);
+  const skin = useAbisso((s) => s.skin);
+  const sea = useAbisso((s) => s.sea);
+  const quality = useAbisso((s) => s.quality);
+  const setQuality = useAbisso((s) => s.setQuality);
   const probe = useAbisso((s) => s.probe);
   const setProbe = useAbisso((s) => s.setProbe);
   const selected = useAbisso((s) => s.selected);
@@ -441,13 +445,29 @@ export function App() {
               </div>
               <div className="chips">
                 <button type="button" className="chip" data-on={finish === "controllo"} onClick={() => setFinish("controllo")}>
-                  Fasciame chiaro
+                  Controllo
                 </button>
                 <button type="button" className="chip" data-on={finish === "atlantico"} onClick={() => setFinish("atlantico")}>
-                  Grigio atlantico
+                  Atlantico
                 </button>
               </div>
-              <p className="note">Il grigio chiaro è da sala di controllo: le cuciture e il danno si leggono. L’atlantico è il tono di mare. L’anno cambia torre e volume colpibile, non lo spessore del Druckkörper.</p>
+              <div className="chips">
+                <button type="button" className="chip" data-on={skin} onClick={() => toggle("skin")}>
+                  Modello 3D
+                </button>
+                <button type="button" className="chip" data-on={sea} disabled={finish !== "atlantico"} onClick={() => toggle("sea")}>
+                  Mare
+                </button>
+                <button
+                  type="button"
+                  className="chip"
+                  data-on={quality === "alta"}
+                  onClick={() => setQuality(quality === "alta" ? "media" : "alta")}
+                >
+                  Qualità {quality}
+                </button>
+              </div>
+              <p className="note">Controllo: sfondo chiaro, il danno ha i colori della legenda. Atlantico: acqua alla quota del caso, danno come lamiera bruciata e strappata. I numeri sono gli stessi. Il modello 3D è un rivestimento: il calcolo resta sullo scafo parametrico. L’anno cambia torre e volume colpibile, non lo spessore del Druckkörper.</p>
 
               <p className="meta">Ordigno</p>
               <label className="field">
@@ -564,6 +584,9 @@ export function App() {
                 cam={cam}
                 shot={shot}
                 finish={finish}
+                skin={skin}
+                sea={sea}
+                quality={quality}
                 probe={probe}
                 selected={selected}
                 onHit={(x, y, z) => setProbe(describeHit(input, computed.data, x, y, z))}

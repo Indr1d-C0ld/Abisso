@@ -1,16 +1,30 @@
 import { useGLTF } from "@react-three/drei";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { boatById } from "@/data/boats";
 import { boatModelFor } from "@/components/abisso/boatModels";
 import type { Era } from "@/data/types";
+import { applyDamage, type DamageUniforms } from "@/render/hullMaterial";
 import { stationRadii } from "@/sim/shape";
 
 /**
  * Scafo Thrixel allineato al sistema di riferimento del calcolo (prua +X, asse del
  * Druckkörper a y = 0). È solo rivestimento: il danno si calcola sullo scafo parametrico.
  */
-export function BoatModel({ boatId, era = "1941" }: { boatId: string; era?: Era }) {
+export function BoatModel({
+  boatId,
+  era = "1941",
+  damage,
+  planes,
+  onReady,
+}: {
+  boatId: string;
+  era?: Era;
+  /** Uniform condivisi del danno (src/render/hullMaterial.ts); senza, il modello è intatto. */
+  damage?: DamageUniforms;
+  planes?: THREE.Plane[];
+  onReady?: () => void;
+}) {
   const boat = boatById(boatId);
   const def = boatModelFor(boat.family, era);
   const { scene } = useGLTF(def.url);
@@ -18,14 +32,22 @@ export function BoatModel({ boatId, era = "1941" }: { boatId: string; era?: Era 
     const model = scene.clone(true);
     // Alcuni GLB (es. VIIC 1944) portano sia colori per vertice sia una texture di colore:
     // three.js li moltiplica e lo scafo esce quasi nero. Dove c'è la texture vale quella.
+    // Con il danno ogni materiale viene clonato e modificato (squarci, tinta, ammaccature);
+    // le cache di useGLTF restano intatte per la galleria.
     model.traverse((o) => {
       const mesh = o as THREE.Mesh;
-      if (!mesh.isMesh || !mesh.geometry.getAttribute("color")) return;
+      if (!mesh.isMesh) return;
+      const hasColor = Boolean(mesh.geometry.getAttribute("color"));
       const fix = (m: THREE.Material) => {
         const sm = m as THREE.MeshStandardMaterial;
-        if (!sm.map || !sm.vertexColors) return m;
+        const needsColorFix = hasColor && sm.map && sm.vertexColors;
+        if (!needsColorFix && !damage) return m;
         const c = sm.clone();
-        c.vertexColors = false;
+        if (needsColorFix) c.vertexColors = false;
+        if (damage && (c as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+          c.side = THREE.DoubleSide;
+          applyDamage(c, damage);
+        }
         return c;
       };
       mesh.material = Array.isArray(mesh.material) ? mesh.material.map(fix) : fix(mesh.material);
@@ -63,7 +85,19 @@ export function BoatModel({ boatId, era = "1941" }: { boatId: string; era?: Era 
     offset.add(pivot);
     offset.userData.scaleY = scaleY;
     return offset;
-  }, [scene, def, boat]);
+  }, [scene, def, boat, damage]);
+  useEffect(() => {
+    object.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        m.clippingPlanes = planes?.length ? planes : null;
+      }
+    });
+  }, [object, planes]);
+  useEffect(() => {
+    onReady?.();
+  }, [object, onReady]);
   return <primitive object={object} />;
 }
 

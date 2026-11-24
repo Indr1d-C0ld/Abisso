@@ -33,6 +33,34 @@ type Tab = "studio" | "casi" | "archivio" | "metodo";
 type Mobile = "model" | "data" | "result";
 type Cam = "quarter" | "beam" | "bow" | "stern" | "top" | "keel";
 export type Finish = "controllo" | "atlantico";
+export type Quality = "alta" | "media";
+
+type View = { skin: boolean; sea: boolean; quality: Quality };
+const VIEW_KEY = "abisso.view.v1";
+const DEFAULT_VIEW: View = { skin: true, sea: true, quality: "alta" };
+
+function loadView(): View {
+  if (typeof window === "undefined") return DEFAULT_VIEW;
+  try {
+    const o = JSON.parse(localStorage.getItem(VIEW_KEY) || "null") as Partial<View> | null;
+    if (!o) return DEFAULT_VIEW;
+    return {
+      skin: o.skin !== false,
+      sea: o.sea !== false,
+      quality: o.quality === "media" ? "media" : "alta",
+    };
+  } catch {
+    return DEFAULT_VIEW;
+  }
+}
+
+function saveView(v: View) {
+  try {
+    localStorage.setItem(VIEW_KEY, JSON.stringify(v));
+  } catch {
+    /* ignore */
+  }
+}
 
 function sanitize(raw: unknown): SimInput {
   const d = DEFAULT_INPUT;
@@ -101,6 +129,11 @@ type State = {
   spheres: boolean;
   cam: Cam;
   finish: Finish;
+  /** Rivestimento Thrixel al posto del fasciame parametrico. */
+  skin: boolean;
+  /** Superficie del mare nella resa Atlantico. */
+  sea: boolean;
+  quality: Quality;
   probe: HullProbe | null;
   selected: string | null;
   cases: SavedCase[];
@@ -113,7 +146,8 @@ type State = {
   setCam: (c: Cam) => void;
   setFinish: (f: Finish) => void;
   setProbe: (p: HullProbe | null) => void;
-  toggle: (k: "xray" | "cut" | "spheres" | "interior") => void;
+  toggle: (k: "xray" | "cut" | "spheres" | "interior" | "skin" | "sea") => void;
+  setQuality: (q: Quality) => void;
   select: (id: string | null) => void;
   saveCase: (title: string, outcome: string) => void;
   deleteCase: (id: string) => void;
@@ -132,13 +166,14 @@ export const useAbisso = create<State>((set, get) => ({
   spheres: false,
   cam: "quarter",
   finish: "controllo",
+  ...DEFAULT_VIEW,
   probe: null,
   selected: null,
   cases: [],
   eventId: null,
   setTab: (tab) => set({ tab }),
   setMobile: (mobile) => set({ mobile }),
-  hydrate: () => set({ input: loadInput(), cases: loadCases() }),
+  hydrate: () => set({ input: loadInput(), cases: loadCases(), ...loadView() }),
   patch: (p) => {
     const input = sanitize({ ...get().input, ...p });
     try {
@@ -156,10 +191,20 @@ export const useAbisso = create<State>((set, get) => ({
     if (k === "xray") set({ xray: !get().xray });
     if (k === "cut") set({ cut: !get().cut });
     if (k === "spheres") set({ spheres: !get().spheres });
+    if (k === "skin" || k === "sea") {
+      set({ [k]: !get()[k] } as Pick<State, typeof k>);
+      const { skin, sea, quality } = get();
+      saveView({ skin, sea, quality });
+    }
     if (k === "interior") {
       const interior = !get().interior;
       set(interior ? { interior, cut: true, xray: true } : { interior });
     }
+  },
+  setQuality: (quality) => {
+    set({ quality });
+    const { skin, sea } = get();
+    saveView({ skin, sea, quality });
   },
   select: (selected) => set({ selected }),
   saveCase: (title, outcome) => {

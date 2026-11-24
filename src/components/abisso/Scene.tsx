@@ -5,9 +5,14 @@ import { coleMPa, severityAtPoint, SOUND_MPS } from "@/sim/model";
 import { outerPoint, stationRadii, towerBox } from "@/sim/shape";
 import { Html, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { ChargeModel } from "@/components/abisso/ChargeModel";
+import { BoatModel } from "@/components/abisso/BoatModel";
+import { boatModelFor } from "@/components/abisso/boatModels";
+import { applyBreachMask, createDamageUniforms, updateDamageUniforms } from "@/render/hullMaterial";
+import { Atlantic } from "@/render/water/Atlantic";
+import { PostFX } from "@/render/PostFX";
 import { chargeModelFor } from "@/components/abisso/chargeModels";
 
 function buildOuter(boatId: string) {
@@ -546,6 +551,7 @@ function Hull({
   xray,
   cut,
   interior,
+  skin,
   onHit,
 }: {
   boatId: string;
@@ -555,11 +561,14 @@ function Hull({
   xray: boolean;
   cut: boolean;
   interior: boolean;
+  /** Rivestimento Thrixel al posto del fasciame parametrico (che resta per il clic). */
+  skin: boolean;
   onHit: (x: number, y: number, z: number) => void;
 }) {
   const outer = useMemo(() => buildOuter(boatId), [boatId]);
   const ph = useMemo(() => buildPh(boatId), [boatId]);
   const plate = useMemo(() => plateTexture(finish), [finish]);
+  const damage = useMemo(() => createDamageUniforms(), []);
   const [wounds, setWounds] = useState<Wound[]>([]);
   useEffect(() => {
     return () => {
@@ -572,12 +581,29 @@ function Hull({
     const w = paint(outer, result.charges, "outer");
     paint(ph, result.charges, "ph");
     setWounds(w);
-  }, [outer, ph, result]);
+    updateDamageUniforms(damage, result.charges, w, finish);
+  }, [outer, ph, result, damage, finish]);
   const clip = useMemo(() => [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.05)], []);
-  const planes = cut ? clip : [];
+  const none = useMemo<THREE.Plane[]>(() => [], []);
+  const planes = cut ? clip : none;
   const boat = boatById(boatId);
   const ghost = xray || interior;
   const open = wounds.some((w) => w.hole > 0);
+  const modelUrl = boatModelFor(boat.family, era).url;
+  const [readyUrl, setReadyUrl] = useState<string | null>(null);
+  const onReady = useCallback(() => setReadyUrl(modelUrl), [modelUrl]);
+  const wantSkin = skin && !ghost;
+  // Il fasciame parametrico si nasconde solo quando il modello è davvero caricato.
+  const showSkin = wantSkin && readyUrl === modelUrl;
+  const phBreach = useMemo(
+    () =>
+      applyBreachMask(
+        new THREE.MeshStandardMaterial({ color: "#c5ccc6", vertexColors: true, metalness: 0.4, roughness: 0.5, side: THREE.DoubleSide }),
+        damage,
+      ),
+    [damage],
+  );
+  useEffect(() => () => phBreach.dispose(), [phBreach]);
   return (
     <group
       onClick={(e) => {
@@ -596,9 +622,10 @@ function Hull({
           depthWrite={!ghost}
           side={THREE.DoubleSide}
           clippingPlanes={planes}
+          visible={!showSkin}
         />
       </mesh>
-      {(ghost || cut || open) && (
+      {(ghost || cut || (open && !showSkin)) && (
         <mesh geometry={ph} dispose={null}>
           <meshStandardMaterial
             color="#c5ccc6"
@@ -610,10 +637,17 @@ function Hull({
           />
         </mesh>
       )}
+      {/* Con il rivestimento il Druckkörper si vede solo dietro gli squarci. */}
+      {open && showSkin && !cut && <mesh geometry={ph} dispose={null} material={phBreach} />}
+      {wantSkin && (
+        <Suspense fallback={null}>
+          <BoatModel boatId={boat.id} era={era} damage={damage} planes={planes} onReady={onReady} />
+        </Suspense>
+      )}
       <Shards wounds={wounds} planes={planes} />
       {interior && <InteriorFit boatId={boat.id} result={result} planes={planes} />}
-      <Casing boatId={boat.id} finish={finish} planes={planes} />
-      <Fittings boatId={boat.id} era={era} charges={result.charges} eraCut={planes} />
+      {!showSkin && <Casing boatId={boat.id} finish={finish} planes={planes} />}
+      {!showSkin && <Fittings boatId={boat.id} era={era} charges={result.charges} eraCut={planes} />}
     </group>
   );
 }
@@ -922,6 +956,8 @@ function Markers({ result, spheres, weaponId }: { result: SimResult; spheres: bo
   );
 }
 
+type ViewProps = { skin: boolean; sea: boolean; quality: "alta" | "media" };
+
 function Stage({
   input,
   result,
@@ -932,10 +968,13 @@ function Stage({
   cam,
   shot,
   finish,
+  skin,
+  sea,
+  quality,
   probe,
   selected,
   onHit,
-}: {
+}: ViewProps & {
   input: SimInput;
   result: SimResult;
   xray: boolean;
@@ -952,12 +991,15 @@ function Stage({
   const boat = boatById(input.boatId);
   const mid = stationRadii(boat, 0.5);
   const { scene, gl } = useThree();
+  const atlantic = finish === "atlantico";
   useLayoutEffect(() => {
+    // Il tone mapping lo fa PostFX; l'esposizione resta quella di prima.
+    gl.toneMapping = THREE.NoToneMapping;
+    gl.toneMappingExposure = 1.18;
+    if (atlantic) return; // sfondo e nebbia li gestisce <Atlantic>
     scene.background = new THREE.Color("#d5ddd6");
     scene.fog = null;
-    gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 1.18;
-  }, [scene, gl]);
+  }, [scene, gl, atlantic]);
   const sel = result.compartments.find((c) => c.id === (selected ?? probe?.compId));
   const ring = (x: number) => {
     const s = stationRadii(boat, clampT(x, boat.loa));
@@ -965,12 +1007,19 @@ function Stage({
   };
   return (
     <>
-      <hemisphereLight args={["#f7f4ee", "#9aa59c", 0.72]} />
-      <directionalLight position={[40, 70, 30]} intensity={1.45} />
-      <directionalLight position={[-28, 22, -24]} intensity={0.45} color="#f3ead8" />
-      <directionalLight position={[0, -18, 20]} intensity={0.28} color="#d7c7a4" />
+      {atlantic ? (
+        <Atlantic depth={input.axisDepth} loa={boat.loa} sea={sea} quality={quality} />
+      ) : (
+        <>
+          <hemisphereLight args={["#f7f4ee", "#9aa59c", 0.72]} />
+          <directionalLight position={[40, 70, 30]} intensity={1.45} />
+          <directionalLight position={[-28, 22, -24]} intensity={0.45} color="#f3ead8" />
+          <directionalLight position={[0, -18, 20]} intensity={0.28} color="#d7c7a4" />
+        </>
+      )}
+      <PostFX mode={finish} quality={quality} />
       <CameraRig cam={cam} loa={boat.loa} />
-      <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} onHit={onHit} />
+      <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} onHit={onHit} />
       <Markers result={result} spheres={spheres} weaponId={input.weaponId} />
       <Shocks shot={shot} boatId={boat.id} result={result} />
       <Bubbles shot={shot} result={result} />
@@ -990,11 +1039,15 @@ function Stage({
           <meshBasicMaterial color="#c6a15a" />
         </mesh>
       )}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -mid.ry - 1.4, 0]}>
-        <circleGeometry args={[boat.loa * 0.95, 64]} />
-        <meshStandardMaterial color="#c5d0c8" roughness={1} metalness={0} />
-      </mesh>
-      <gridHelper args={[boat.loa * 1.7, 18, "#8c7040", "#8ea096"]} position={[0, -mid.ry - 1.35, 0]} />
+      {!atlantic && (
+        <>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -mid.ry - 1.4, 0]}>
+            <circleGeometry args={[boat.loa * 0.95, 64]} />
+            <meshStandardMaterial color="#c5d0c8" roughness={1} metalness={0} />
+          </mesh>
+          <gridHelper args={[boat.loa * 1.7, 18, "#8c7040", "#8ea096"]} position={[0, -mid.ry - 1.35, 0]} />
+        </>
+      )}
       <OrbitControls
         makeDefault
         enablePan
@@ -1043,11 +1096,14 @@ export function Scene({
   cam,
   shot,
   finish,
+  skin,
+  sea,
+  quality,
   probe,
   selected,
   onHit,
   onMiss,
-}: {
+}: ViewProps & {
   /** Falso quando la scheda Studio è nascosta: il render loop si ferma. */
   active?: boolean;
   input: SimInput;
@@ -1068,9 +1124,9 @@ export function Scene({
     <Boundary>
       <Canvas
         camera={{ position: [52, 23, 72], fov: 46, near: 0.2, far: 900 }}
-        dpr={[1, 1.6]}
+        dpr={quality === "alta" ? [1, 2] : [1, 1.25]}
         frameloop={active ? "always" : "never"}
-        gl={{ antialias: true, localClippingEnabled: true, alpha: false }}
+        gl={{ antialias: false, localClippingEnabled: true, alpha: false, powerPreference: "high-performance" }}
         onCreated={({ camera }) => camera.lookAt(0, 0.4, 0)}
         onPointerMissed={() => onMiss()}
       >
@@ -1084,6 +1140,9 @@ export function Scene({
           cam={cam}
           shot={shot}
           finish={finish}
+          skin={skin}
+          sea={sea}
+          quality={quality}
           probe={probe}
           selected={selected}
           onHit={onHit}

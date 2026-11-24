@@ -723,3 +723,8 @@ details.adv summary {
   overflow: hidden;
   background: var(--color-surface);
 }
+
+.chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
