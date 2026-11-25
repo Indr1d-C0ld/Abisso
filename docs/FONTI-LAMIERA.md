@@ -123,5 +123,7 @@ nel verdetto né nell'allagamento.
 | Quote | — | VIIC costruzione 100 m, prova 105 m; IXC 100 m × 2,5; XXI 135 m × 2,5, modello in scala ceduto a circa 274 m | manuali e Portsmouth, verificato |
 
 Due fonti primarie si contraddicono sullo spessore del VIIC: il manuale tedesco del 1940
-e la misura britannica sul battello catturato. Cambiare questi dati sposta gli esiti:
-decisione da prendere.
+e la misura britannica sul battello catturato. **Deciso il 25/11/2026: resta 22 mm**, la
+misura sul battello reale, coerente con la stima della Royal Navy usata per la taratura.
+La scheda del VIIC riporta entrambe le fonti. I tre diametri (XXI, XB, II) restano da
+decidere: cambiarli sposta esiti e geometria.

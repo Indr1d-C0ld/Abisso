@@ -170,7 +170,7 @@ export const BOATS: Boat[] = [
     towerH: 2.55,
     twin: true,
     deckGun: true,
-    plateNote: "22 mm a centro scafo (16 mm alle estremità), acciaio St 52, corpo resistente 50,50 × 4,70 m: misure su U-570 catturato (ONI 1941, C.B. 4318 del 1943). Le sintesi da Rössler danno 18,5 mm. È il riferimento strutturale dell'intero modello.",
+    plateNote: "22 mm a centro scafo (16 mm alle estremità), acciaio St 52, corpo resistente 50,50 × 4,70 m: misure su U-570 catturato (ONI 1941, C.B. 4318 del 1943). Il manuale tedesco del 1940 (M.Dv. 371/181) dà invece 18,5 mm per il cilindro e 16 per i coni: due fonti primarie in disaccordo. Il modello tiene la misura sul battello, la stessa della stima della Royal Navy con cui è tarato. È il riferimento strutturale dell'intero modello.",
     depthNote:
       "Rössler, come riportato in sede d'archivio: quota di progetto 100 m, prova 150 m, distruzione di calcolo 250 m. Molte sintesi in inglese scrivono «crush depth 200 m»: è la cifra dottrinale, non quella di calcolo. Il modello usa 250 m e lo dice.",
     blurb:
