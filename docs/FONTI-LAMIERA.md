@@ -111,12 +111,12 @@ nel verdetto né nell'allagamento.
   della superficie, ricostruito), i valori assoluti stanno «nei documenti segreti».
 - IXC: il rapporto di Portsmouth dichiara il dato non disponibile. Tipo II: non trovato.
 
-### Dati di scafo: discrepanze aperte (non applicate)
+### Dati di scafo: discrepanze
 
 | Classe | Nel modello | Trovato | Fonte e stato |
 |---|---|---|---|
 | VIIC, lamiera | 22 mm | **18,5 mm** cilindro, 16 mm coni | M.Dv. 371/181 (1940), verificato. Contro: 22,4 mm (C.B. 4318, misura sull'U-570) e ⅞ in (ONI, presso un portello, zona rinforzata) |
-| XXI, diametro | 5,0 m | 5,3 m (lobo superiore) | Portsmouth 2G-21, verificato |
+| XXI, diametro | 5,3 m (era 5,0) | 5,3 m (lobo superiore) | Portsmouth 2G-21, verificato. **Applicato il 25/11/2026**: 103 esiti del XXI su 9 607 combinazioni peggiorano (42 da serio a perdita), nessun caso storico cambia; la stessa lamiera su un cilindro più largo regge meno |
 | XB, diametro | 4,9 m | 4,75 m; lunghezza 70,9 m | Gröner via Wikipedia, secondaria; 88 ordinate × 800 mm ≈ 70 m è coerente |
 | II, diametro | 3,5 m | 4,00 m; IIB lungo 28,2 m | de.wikipedia, secondaria |
 | II, lamiera | 15,5 mm | non trovato | — |
@@ -125,5 +125,5 @@ nel verdetto né nell'allagamento.
 Due fonti primarie si contraddicono sullo spessore del VIIC: il manuale tedesco del 1940
 e la misura britannica sul battello catturato. **Deciso il 25/11/2026: resta 22 mm**, la
 misura sul battello reale, coerente con la stima della Royal Navy usata per la taratura.
-La scheda del VIIC riporta entrambe le fonti. I tre diametri (XXI, XB, II) restano da
-decidere: cambiarli sposta esiti e geometria.
+La scheda del VIIC riporta entrambe le fonti. Il diametro del XXI è stato applicato; quelli di XB e Tipo II no, perché le fonti
+sono secondarie.

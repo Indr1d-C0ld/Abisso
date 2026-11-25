@@ -395,7 +395,7 @@ export const BOATS: Boat[] = [
     draft: 6.32,
     phLength: 60,
     phKnown: false,
-    phDiameter: 5.0,
+    phDiameter: 5.3,
     plateMm: 26,
     collapseM: 260,
     constructionM: 135,
@@ -419,7 +419,7 @@ export const BOATS: Boat[] = [
     twin: true,
     deckGun: false,
     plateNote:
-      "26 mm nel lobo superiore, 18 mm in quello inferiore: rapporto di Portsmouth Naval Shipyard 1946 su un XXI. Le sintesi d'archivio dicevano 23. Il modello usa 26, lo spessore del lobo di 5,0 m che rappresenta. Il Druckkörper vero è un otto: il diametro 5,0 m è il lobo superiore, non la sezione intera. La geometria 3D è un inviluppo, non quell'otto.",
+      "26 mm nel lobo superiore, 18 mm in quello inferiore: rapporto di Portsmouth Naval Shipyard 1946 su un XXI. Le sintesi d'archivio dicevano 23. Il modello usa 26, lo spessore del lobo superiore che rappresenta, di 5,3 m di diametro secondo lo stesso rapporto (prima 5,0 m, stima). Il Druckkörper vero è un otto: il diametro 5,3 m è il lobo superiore, non la sezione intera. La geometria 3D è un inviluppo, non quell'otto.",
     depthNote:
       "Le fonti non parlano della stessa cosa. Wikipedia elenca una test depth di 240 m. I rapporti USA del 1946 e le discussioni su Rössler descrivono un calcolo oltre i 330 m e cedimenti pratici, per saldature e tolleranze, fra 240 e 270 m, con deformazioni già verso i 300 m in prova. Il modello usa 260 m come collasso pratico.",
     blurb:
