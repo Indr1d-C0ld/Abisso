@@ -749,6 +749,17 @@ export function App() {
                       <li><i className="swatch" data-l="allagamento" /> Allagato</li>
                       <li><i className="swatch" data-l="rottura" /> Rottura, lamiera tolta</li>
                     </ul>
+                    {interior && (
+                      <>
+                        <span>Paratie (spesse = resistenti)</span>
+                        <ul>
+                          <li><i className="swatch" style={{ background: "#c6a15a" }} /> Scarica</li>
+                          <li><i className="swatch" style={{ background: "#d4783a" }} /> Sotto carico</li>
+                          <li><i className="swatch" style={{ background: "#7a1f16" }} /> Oltre la prova</li>
+                          <li><i className="swatch" style={{ background: "#7f8fa6" }} /> Carica, tenuta ignota</li>
+                        </ul>
+                      </>
+                    )}
                   </div>
                 )}
                 {probe && (

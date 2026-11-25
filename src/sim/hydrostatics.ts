@@ -17,16 +17,18 @@ export const RHO_SEA = 1025;
 export const G = 9.81;
 
 /**
- * Distanza centro di carena–baricentro in immersione, m. Nessun valore trovato per gli
- * U-Boot; ordine di grandezza dei sommergibili dell'epoca (GM ≈ 0,4–0,5 m in superficie,
- * BuShips WDR 58; esempio didattico USNA EN400: BG = 1,5 ft).
+ * Distanza centro di carena–baricentro in immersione, m (in immersione GM = BG).
+ * XXI: altezza metacentrica specificata, minimo 320 mm in immersione e 290 mm in
+ * superficie (Portsmouth 1946, 2G-21 S29, p. 5). Per le altre classi i manuali tedeschi
+ * danno solo rapporti (valori assoluti «nei documenti segreti») e il rapporto sul IXC
+ * dichiara il dato non disponibile: si usa lo stesso ordine di grandezza del XXI.
  */
 export const BG_M: Record<Family, { m: number; source: string; verified: boolean }> = {
-  II: { m: 0.25, source: "stima di studio", verified: false },
-  VII: { m: 0.3, source: "stima di studio", verified: false },
-  IX: { m: 0.3, source: "stima di studio", verified: false },
-  XB: { m: 0.3, source: "stima di studio", verified: false },
-  XXI: { m: 0.35, source: "stima di studio", verified: false },
+  II: { m: 0.25, source: "stima sull'ordine del XXI", verified: false },
+  VII: { m: 0.3, source: "stima sull'ordine del XXI", verified: false },
+  IX: { m: 0.3, source: "stima sull'ordine del XXI", verified: false },
+  XB: { m: 0.3, source: "stima sull'ordine del XXI", verified: false },
+  XXI: { m: 0.32, source: "Portsmouth 1946: minimo di specifica 320 mm", verified: true },
 };
 
 /**

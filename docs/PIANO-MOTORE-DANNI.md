@@ -93,8 +93,8 @@ gli effetti passano in `src/render/`.
 Thrixel infittite al caricamento (VIIC da 30 000 a 135 000 triangoli); cuscini fra le
 ordinate con freccia di Nurick–Martin (aggiornamento Yuen 2017) al vero e passo delle
 ordinate dalle fonti di guerra; squarci a petali (4–6, Wierzbicki 1999) ancorati al
-rivestimento e piegati verso l'interno. **Non fatto**: schegge balistiche in acqua, stato
-delle paratie (il modello non lo calcola). Spessori allineati alle misure di
+rivestimento e piegati verso l'interno. Detriti in acqua e carico sulle paratie aggiunti il
+25/11/2026 (`debris.ts`, `bulkheads.ts`), come lettura che non entra nel verdetto. Spessori allineati alle misure di
 guerra il 25/11/2026 (VIIC 22 mm, XXI 26 mm, riferimento del modello a 22 mm). Diametro dei IX
 portato a 4,40 m (rapporto del 1946).
 - `response.ts`: deformazione permanente della lamiera da impulso e spessore (numero di

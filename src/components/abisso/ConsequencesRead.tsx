@@ -3,6 +3,8 @@ import { boatById } from "@/data/boats";
 import type { SimInput } from "@/data/types";
 import { n, type SimResult } from "@/sim/model";
 import { buildTimeline } from "@/sim/timeline";
+import { BULKHEADS, bulkheadPeaks, bulkheadsOf } from "@/sim/bulkheads";
+import { dragLength, fragmentsOf, settleSpeed, STEEL, WOOD } from "@/sim/debris";
 import {
   AIR_FREE_M3,
   BG_M,
@@ -25,6 +27,14 @@ export function ConsequencesRead({ input, result }: { input: SimInput; result: S
   const cap = blowCapacityT(boat, input.axisDepth);
   const air = AIR_FREE_M3[boat.family];
   const bg = BG_M[boat.family];
+  const bulk = useMemo(() => bulkheadsOf(boat, result), [boat, result]);
+  const peaks = useMemo(() => bulkheadPeaks(bulk, result, h, input.axisDepth), [bulk, result, h, input.axisDepth]);
+  const spec = BULKHEADS[boat.family];
+  const loaded = bulk.map((b, i) => ({ b, l: peaks[i] })).filter((x) => x.l.headM >= 1);
+  const worstBulk = [...loaded].sort((a, b) => b.l.headM - a.l.headM)[0];
+  const over = loaded.filter((x) => x.l.state === "oltre");
+  const frags = useMemo(() => fragmentsOf(boat, result), [boat, result]);
+  const woodN = frags.filter((f) => f.material.id === "legno").length;
   let fate: string;
   if (h.already) fate = `L'asse è già oltre la quota di collasso del modello (${n(boat.collapseM, 0)} m): il Druckkörper cede subito.`;
   else if (result.flood.dry) fate = "Nessuna via d'acqua strutturale: il battello non imbarca acqua e resta in assetto.";
@@ -45,9 +55,33 @@ export function ConsequencesRead({ input, result }: { input: SimInput; result: S
       {!result.flood.dry && (
         <p>
           <strong>Assetto.</strong> In immersione non c'è piano di galleggiamento: Δ·BG·tan θ = w·x per ogni angolo. Massimo
-          raggiunto {n(Math.abs(deg), 0)}° {deg < 0 ? "appruato" : "appoppato"}, con BG = {n(bg.m, 2)} m ({bg.source}: nessun
-          valore trovato per gli U-Boot) e l'acqua libera che scorre verso la paratia bassa. L'assetto rappresentato si ferma
+          raggiunto {n(Math.abs(deg), 0)}° {deg < 0 ? "appruato" : "appoppato"}, con BG = {n(bg.m, 2)} m ({bg.source}
+          {bg.verified ? "" : "; l'unico valore documentato è il minimo di 320 mm del XXI"}) e l'acqua libera che scorre verso la paratia bassa. L'assetto rappresentato si ferma
           a 75°; in superficie torna il piano di galleggiamento e l'assetto si riduce a pochi gradi.
+        </p>
+      )}
+      {worstBulk && (
+        <p>
+          <strong>Paratie.</strong> Un locale che si allaga con l'aria intrappolata sale verso la pressione del mare; quello
+          accanto resta a un'atmosfera e la paratia porta la differenza. Carico massimo: {n(worstBulk.l.headM, 0)} m d'acqua fra{" "}
+          {worstBulk.b.aftName.toLowerCase()} e {worstBulk.b.foreName.toLowerCase()}
+          {worstBulk.b.pressure ? " (paratia resistente)" : " (paratia stagna leggera)"}.{" "}
+          {over.length > 0
+            ? `${over.length === 1 ? "Una paratia supera" : `${over.length} paratie superano`} la quota per cui erano calcolate: l'allagamento potrebbe estendersi oltre ciò che il modello mostra.`
+            : loaded.some((x) => x.l.state === "ignota")
+              ? "Per alcune paratie la tenuta non è documentata: il carico è mostrato, il giudizio no."
+              : "Nessuna supera la quota per cui era calcolata."}{" "}
+          Paratie resistenti {spec.ratingM !== null ? `a ${n(spec.ratingM, 0)} m` : "di tenuta non trovata"}, leggere{" "}
+          {spec.lightM !== null ? `a ${n(spec.lightM, 0)} m` : "di tenuta non trovata"} ({spec.source}). È una lettura: non entra nel
+          verdetto né nelle curve di allagamento.
+        </p>
+      )}
+      {frags.length > 0 && (
+        <p>
+          <strong>Detriti.</strong> L'acqua frena subito: un pezzo di fasciame da {n(STEEL.h * 1000, 0)} mm ha una lunghezza di
+          frenata di {n(dragLength(STEEL) * 100, 0)} cm e si ferma entro un metro o due, poi affonda a{" "}
+          {n(-settleSpeed(STEEL), 1)} m/s. {woodN > 0 ? `Il tavolato di coperta (${n(WOOD.h * 1000, 0)} mm, ipotesi) sale invece a ${n(settleSpeed(WOOD), 1)} m/s e arriva in superficie in circa ${n(input.axisDepth / settleSpeed(WOOD) / 60, 1)} min.` : "Lo scoppio non raggiunge il tavolato di coperta: niente legno in risalita."}{" "}
+          Formule elementari di resistenza; spessori, densità e numero dei pezzi sono ipotesi e resa.
         </p>
       )}
       {result.chlorine && (

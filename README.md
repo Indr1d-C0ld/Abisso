@@ -60,7 +60,7 @@ Serve Node.js 22 o successivo.
 ```bash
 npm install
 npm run dev        # http://localhost:8080
-npm test           # 66 test: calibrazione, catalogo, fisica, casi storici
+npm test           # 70 test: calibrazione, catalogo, fisica, casi storici
 npm run build      # controllo dei tipi + sito statico in dist/
 npm run smoke      # screenshot headless (richiede `npm run preview` attivo)
 ```

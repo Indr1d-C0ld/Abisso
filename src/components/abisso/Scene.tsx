@@ -6,8 +6,10 @@ import { outerPoint, stationRadii, towerBox } from "@/sim/shape";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Flooding } from "@/render/effects/Flooding";
+import { Debris } from "@/render/effects/Debris";
 import { HullConsequences, OilSlick } from "@/render/effects/Consequences";
 import { crushAt, hydroAt } from "@/sim/hydrostatics";
+import { bulkheadLoads, bulkheadsOf } from "@/sim/bulkheads";
 import { Component, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { BoatModel } from "@/components/abisso/BoatModel";
@@ -424,12 +426,26 @@ function levelColor(level: Level) {
   return "#7d877c";
 }
 
-function InteriorFit({ boatId, result, planes }: { boatId: string; result: SimResult; planes: THREE.Plane[] }) {
+const BULKHEAD_COLOR: Record<string, string> = { scarica: "#c6a15a", carica: "#d4783a", oltre: "#7a1f16", ignota: "#7f8fa6" };
+
+function InteriorFit({ boatId, result, planes, timeline }: { boatId: string; result: SimResult; planes: THREE.Plane[]; timeline: Timeline }) {
   const boat = boatById(boatId);
   const steel = { metalness: 0.35, roughness: 0.5, clippingPlanes: planes };
+  // Paratie: colore dal carico che portano in quell'istante (src/sim/bulkheads.ts).
+  const bulkheads = useMemo(() => bulkheadsOf(boat, result), [boat, result]);
+  const discs = useRef<(THREE.Mesh | null)[]>([]);
+  useFrame(() => {
+    const tReal = displayToReal(timeline, usePlayer.getState().t);
+    const h = hydroAt(timeline.hydro, tReal);
+    const loads = bulkheadLoads(bulkheads, result, Math.min(tReal - timeline.hydro.t0, timeline.hydro.span), h.depth);
+    loads.forEach((l, i) => {
+      const m = discs.current[i];
+      if (m) (m.material as THREE.MeshStandardMaterial).color.set(BULKHEAD_COLOR[l.state]);
+    });
+  });
   return (
     <group>
-      {result.compartments.map((c) => {
+      {result.compartments.map((c, ci) => {
         const mid = (c.x0 + c.x1) / 2;
         const len = Math.max(0.4, c.x1 - c.x0);
         const s = stationRadii(boat, clampT(mid, boat.loa));
@@ -441,8 +457,15 @@ function InteriorFit({ boatId, result, planes }: { boatId: string; result: SimRe
         const mines = c.id.startsWith("mine");
         return (
           <group key={c.id}>
-            <mesh position={[c.x0, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[phr * 0.96, phr * 0.96, 0.08, 28]} />
+            <mesh
+              position={[c.x0, 0, 0]}
+              rotation={[0, 0, Math.PI / 2]}
+              ref={(m) => {
+                if (ci > 0) discs.current[ci - 1] = m;
+              }}
+            >
+              {/* Le paratie resistenti alla pressione sono disegnate più spesse. */}
+              <cylinderGeometry args={[phr * 0.96, phr * 0.96, ci > 0 && bulkheads[ci - 1]?.pressure ? 0.2 : 0.08, 28]} />
               <meshStandardMaterial color="#c6a15a" {...steel} />
             </mesh>
             {c.id === result.compartments[result.compartments.length - 1]?.id && (
@@ -649,7 +672,7 @@ function Hull({
       <group ref={shards}>
         <Petals wounds={petalWounds} planes={planes} atlantic={finish === "atlantico"} />
       </group>
-      {interior && <InteriorFit boatId={boat.id} result={result} planes={planes} />}
+      {interior && <InteriorFit boatId={boat.id} result={result} planes={planes} timeline={timeline} />}
       {(ghost || cut) && <Flooding boat={boat} result={result} timeline={timeline} track={timeline.hydro} planes={planes} />}
       <HullConsequences result={result} timeline={timeline} wounds={petalWounds} loa={boat.loa} />
       {!showSkin && <Casing boatId={boat.id} finish={finish} planes={planes} />}
@@ -1126,6 +1149,7 @@ function Stage({
       <ShockFronts timeline={timeline} result={result} subtle={atlantic} hit={hit} />
       <Bubbles timeline={timeline} subtle={atlantic} />
       <Jets timeline={timeline} report={report} />
+      <Debris boat={boat} result={result} timeline={timeline} depth0={input.axisDepth} />
       {atlantic && sea && <SurfaceDome timeline={timeline} report={report} surfaceY={timeline.surfaceY} />}
       {atlantic && sea && <OilSlick result={result} timeline={timeline} surfaceY={liveDepth} />}
       {sel && (

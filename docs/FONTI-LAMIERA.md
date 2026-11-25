@@ -71,3 +71,57 @@ abbassa da 2,93 a 2,73 m di semialtezza (ora lo fissa il pescaggio) e il modello
 - **Kazemahvazi, Radford, Deshpande & Fleck (2007)**, J. Mech. Mater. Struct. 2(10):
   quattro petali su piastre colpite da onda d'urto in acqua.
 - Resa, non fonte: lunghezza e arricciatura dei petali.
+
+## Paratie, detriti e nuovi dati di scafo (ricerca del 25/11/2026)
+
+Fonti lette su uboatarchive.net: M.Dv. 371/181 (VIIC, ed. 15.7.1940, traduzione inglese),
+M.Dv. 371/184 (XB), rapporti di Portsmouth Naval Shipyard 2G-9C (IXC) e 2G-21 (XXI), sezioni
+S11 e S29, Admiralty C.B. 4318 e rapporto ONI sull'U-570, interrogatorio dell'equipaggio
+dell'U-234.
+
+### Paratie (`src/sim/bulkheads.ts`)
+
+| Classe | Paratie resistenti | Prova | Paratie leggere | Stato |
+|---|---|---|---|---|
+| VIIC | 2 sferiche, ai lati della centrale (ordinate 39 e 50½) | 30 m dal lato concavo | 3 piane, 1 m | verificato |
+| XB | 4 sferiche (ordinate 13½, 45½, 55½, 70½) | 30 m | piane, 2 m | verificato |
+| IXC | 4 bombate, acciaio fuso da 22 mm | non trovata | 2, calcolate per 3 psi | posizioni ricostruite |
+| XXI | 5 saldate | 50 m, fattore 1,5 | 1 fra motori e manovra | posizioni ricostruite |
+| II | non trovato | — | — | — |
+
+Le paratie non erano fatte per la quota massima: 30 m di colonna d'acqua contro i 100 m
+di costruzione dello scafo. Il carico calcolato è la differenza di pressione fra un locale
+che si allaga (aria intrappolata, isoterma) e quello accanto. È una lettura: non entra
+nel verdetto né nell'allagamento.
+
+### Detriti (`src/sim/debris.ts`)
+
+- Fasciame delle casse esterne: 6 mm sul IXC, 5–8 mm sul XXI (Portsmouth 1946) — verificato.
+- Ponte di coperta in legno: VIIC, IXC, XB — verificato; sul XXI solo in plancia.
+  Essenza e spessore: non trovati (40 mm è un'ipotesi; una fonte secondaria parla di abete
+  o pino trattato).
+- Fisica ricostruita con formule elementari: lancio v₀ = i / (ρ h), frenata con resistenza
+  quadratica, velocità limite. Numero e dispersione dei pezzi: resa.
+
+### Stabilità
+
+- XXI: altezza metacentrica minima di specifica 290 mm in superficie e **320 mm in
+  immersione** (Portsmouth 2G-21 S29, p. 5) — verificato, ora nel modello.
+- VIIC e XB: i manuali danno solo rapporti (VIIC 5:4:3:2; XB in immersione circa un terzo
+  della superficie, ricostruito), i valori assoluti stanno «nei documenti segreti».
+- IXC: il rapporto di Portsmouth dichiara il dato non disponibile. Tipo II: non trovato.
+
+### Dati di scafo: discrepanze aperte (non applicate)
+
+| Classe | Nel modello | Trovato | Fonte e stato |
+|---|---|---|---|
+| VIIC, lamiera | 22 mm | **18,5 mm** cilindro, 16 mm coni | M.Dv. 371/181 (1940), verificato. Contro: 22,4 mm (C.B. 4318, misura sull'U-570) e ⅞ in (ONI, presso un portello, zona rinforzata) |
+| XXI, diametro | 5,0 m | 5,3 m (lobo superiore) | Portsmouth 2G-21, verificato |
+| XB, diametro | 4,9 m | 4,75 m; lunghezza 70,9 m | Gröner via Wikipedia, secondaria; 88 ordinate × 800 mm ≈ 70 m è coerente |
+| II, diametro | 3,5 m | 4,00 m; IIB lungo 28,2 m | de.wikipedia, secondaria |
+| II, lamiera | 15,5 mm | non trovato | — |
+| Quote | — | VIIC costruzione 100 m, prova 105 m; IXC 100 m × 2,5; XXI 135 m × 2,5, modello in scala ceduto a circa 274 m | manuali e Portsmouth, verificato |
+
+Due fonti primarie si contraddicono sullo spessore del VIIC: il manuale tedesco del 1940
+e la misura britannica sul battello catturato. Cambiare questi dati sposta gli esiti:
+decisione da prendere.
