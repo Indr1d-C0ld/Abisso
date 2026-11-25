@@ -11,7 +11,7 @@ export const FAMILY_STRUCTURE: Record<Family, { title: string; body: string[] }>
   VII: {
     title: "Cilindro e casse a sella",
     body: [
-      "Il corpo resistente del VIIC è un cilindro di 4,70 m, lamiera 18,5 mm (21 mm sul /41), lungo 50,50 m, con estremità coniche. Il baglio di 6,20 m non è quel cilindro: è il fasciame esterno e le Satteltanks, allagabili, dove sta la nafta.",
+      "Il corpo resistente del VIIC è un cilindro di 4,70 m, lamiera 22 mm a centro scafo (misura sull'U-570; 24,5 mm ricostruiti sul /41), lungo 50,50 m, con estremità coniche. Il baglio di 6,20 m non è quel cilindro: è il fasciame esterno e le Satteltanks, allagabili, dove sta la nafta.",
       "Da poppa a prua le paratie stagne separano camera di lancio poppiera, sala elettrica, sala diesel, alloggi con batteria poppiera, centrale sotto la torre, alloggi con batteria prodiera, camera di lancio prodiera. La centrale è corta e sta dove la carica al traverso arriva più spesso.",
       "Le ordinate sono interne e il modello non le numera. Il cedimento che si legge è della lamiera del compartimento, non di un’ordinata di cantiere.",
     ],

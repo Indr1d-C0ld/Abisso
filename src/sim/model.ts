@@ -317,7 +317,8 @@ export function levelOf(s: number): Level {
 
 export function hullScale(boat: Boat) {
   const s = boat.plateMm / boat.phDiameter;
-  const sRef = 18.5 / 4.7;
+  // Riferimento: VIIC, 22 mm misurati sull'U-570 (ONI 1941), lo stesso spessore della stima RN di calibrazione.
+  const sRef = 22 / 4.7;
   return Math.pow(sRef / s, 1 / 1.13);
 }
 

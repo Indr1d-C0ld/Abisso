@@ -107,7 +107,7 @@ export const BOATS: Boat[] = [
     phLength: 48.8,
     phKnown: true,
     phDiameter: 4.7,
-    plateMm: 18.5,
+    plateMm: 22,
     collapseM: 200,
     constructionM: 100,
     testM: 150,
@@ -129,7 +129,7 @@ export const BOATS: Boat[] = [
     towerH: 2.55,
     twin: true,
     deckGun: true,
-    plateNote: "Lamiera assunta uguale al VIIC (18,5 mm). Le fonti usate qui non isolano in modo univoco lo spessore del VIIB.",
+    plateNote: "Lamiera assunta uguale al VIIC (22 mm, misura di guerra sull'U-570). Le fonti usate qui non isolano lo spessore del VIIB.",
     depthNote: "Collasso posto a 200 m, la cifra delle sintesi anglosassoni. Per il VIIC il modello usa invece i 250 m di calcolo attribuiti a Rössler.",
     blurb:
       "Il VII della «prima stagione felice»: più nafta del VIIA, cinque tubi, cannone da 88 mm sul ponte. Prien, Kretschmer e Schepke uscirono su scafi di questo tipo. Rispetto al VIIC il modello lo tratta come un fasciame simile con meno riserva di quota.",
@@ -148,7 +148,7 @@ export const BOATS: Boat[] = [
     phLength: 50.5,
     phKnown: true,
     phDiameter: 4.7,
-    plateMm: 18.5,
+    plateMm: 22,
     collapseM: 250,
     constructionM: 100,
     testM: 150,
@@ -170,7 +170,7 @@ export const BOATS: Boat[] = [
     towerH: 2.55,
     twin: true,
     deckGun: true,
-    plateNote: "18,5 mm di acciaio ST 52, corpo resistente 50,50 × 4,70 m. È il riferimento strutturale dell'intero modello.",
+    plateNote: "22 mm a centro scafo (16 mm alle estremità), acciaio St 52, corpo resistente 50,50 × 4,70 m: misure su U-570 catturato (ONI 1941, C.B. 4318 del 1943). Le sintesi da Rössler danno 18,5 mm. È il riferimento strutturale dell'intero modello.",
     depthNote:
       "Rössler, come riportato in sede d'archivio: quota di progetto 100 m, prova 150 m, distruzione di calcolo 250 m. Molte sintesi in inglese scrivono «crush depth 200 m»: è la cifra dottrinale, non quella di calcolo. Il modello usa 250 m e lo dice.",
     blurb:
@@ -190,7 +190,7 @@ export const BOATS: Boat[] = [
     phLength: 50.5,
     phKnown: true,
     phDiameter: 4.7,
-    plateMm: 21,
+    plateMm: 24.5,
     collapseM: 300,
     constructionM: 120,
     testM: 180,
@@ -212,7 +212,7 @@ export const BOATS: Boat[] = [
     towerH: 2.45,
     twin: true,
     deckGun: true,
-    plateNote: "Rössler: 21 mm. Alcune schede scrivono 20,5 mm. Il modello usa 21.",
+    plateNote: "Ricostruito: le sintesi da Rössler danno 21 mm contro 18,5 del VIIC, cioè +2,5 mm. Applicato alla misura di guerra del VIIC (22 mm) dà 24,5 mm. Nessuna misura diretta di un /41 trovata.",
     depthNote: "Progetto 120 m, prova 180 m, distruzione di calcolo 300 m (Rössler). Le sintesi popolari spesso si fermano a 250 m.",
     blurb:
       "Un VIIC a cui hanno tolto peso per ispessire il corpo resistente. Stessa sagoma, altra riserva. A quota operativa la differenza si vede; vicino ai 200 m diventa netta, perché il VIIC è già nel tratto ripido della curva di precarico e il /41 no.",
@@ -231,7 +231,7 @@ export const BOATS: Boat[] = [
     phLength: 56,
     phKnown: false,
     phDiameter: 4.9,
-    plateMm: 18.5,
+    plateMm: 18,
     collapseM: 230,
     constructionM: 100,
     testM: 150,
@@ -253,7 +253,7 @@ export const BOATS: Boat[] = [
     towerH: 2.6,
     twin: true,
     deckGun: true,
-    plateNote: "18,5 mm, come indicato per il Tipo IXC nelle stesse discussioni d'archivio. Diametro del Druckkörper 4,90 m: stima di inviluppo, non un dato di Rössler isolato qui.",
+    plateNote: "Assunta uguale al IXC/40 misurato a Portsmouth nel 1946 (18 mm, 16 alle estremità). Le sintesi d'archivio dicevano 18,5. Diametro del Druckkörper 4,90 m: stima di inviluppo; il rapporto 1946 dà 4,40 m per il IXC/40.",
     depthNote: "Collasso 230 m: stima di questo studio a parità di acciaio e con diametro maggiore del VII. Non è una cifra di cantiere.",
     blurb:
       "Il battello oceanico della prima campagna americana. Più lungo del VII, due tubi a poppa, nafta per restare settimane al largo. A parità di lamiera il diametro maggiore alza la tensione circonferenziale: il modello lo fa pagare, con franchezza, come stima.",
@@ -272,7 +272,7 @@ export const BOATS: Boat[] = [
     phLength: 58,
     phKnown: false,
     phDiameter: 4.9,
-    plateMm: 18.5,
+    plateMm: 18,
     collapseM: 230,
     constructionM: 100,
     testM: 150,
@@ -294,7 +294,7 @@ export const BOATS: Boat[] = [
     towerH: 2.6,
     twin: true,
     deckGun: true,
-    plateNote: "18,5 mm citati per il Tipo IXC. Lunghezza del Druckkörper stimata (58 m): il dato solido, per il VII, è 50,50 m; qui non va trattato come un piano.",
+    plateNote: "18 mm, assunti uguali al IXC/40 misurato a Portsmouth nel 1946. Lunghezza del Druckkörper stimata (58 m): il dato solido, per il VII, è 50,50 m; qui non va trattato come un piano.",
     depthNote: "Collasso 230 m, stima. Vedi Tipo IXB.",
     blurb:
       "Il Tipo IX di mezzo oceano: autonomia oltre 13 000 miglia a 10 nodi. U-505, catturato nel 1944, è di questa classe. In immersione non è più veloce di un VII: la massa serve per il combustibile e i siluri, non per la fuga.",
@@ -313,7 +313,7 @@ export const BOATS: Boat[] = [
     phLength: 58,
     phKnown: false,
     phDiameter: 4.9,
-    plateMm: 18.5,
+    plateMm: 18,
     collapseM: 230,
     constructionM: 100,
     testM: 150,
@@ -335,7 +335,7 @@ export const BOATS: Boat[] = [
     towerH: 2.6,
     twin: true,
     deckGun: true,
-    plateNote: "Stessi assunti strutturali del IXC. Il /40 è soprattutto più nafta e un baglio di pochi centimetri.",
+    plateNote: "18 mm a centro scafo, 16 alle estremità, acciaio St 52: rapporto di Portsmouth Naval Shipyard 1946. Lo stesso rapporto dà un Druckkörper di 4,40 m; il modello usa ancora 4,90 (inviluppo).",
     depthNote: "Collasso 230 m, stima, come il IXC.",
     blurb:
       "Variante tarda del IXC, quella di U-534. Per il modello di danno è quasi lo stesso scafo: conta la lamiera, il diametro e la quota, non il serbatoio in più.",
@@ -354,7 +354,7 @@ export const BOATS: Boat[] = [
     phLength: 68,
     phKnown: false,
     phDiameter: 4.9,
-    plateMm: 18.5,
+    plateMm: 20.5,
     collapseM: 200,
     constructionM: 100,
     testM: 150,
@@ -377,7 +377,7 @@ export const BOATS: Boat[] = [
     twin: true,
     deckGun: true,
     plateNote:
-      "Lamiera e diametro del corpo resistente sono stimati (18,5 mm, 4,9 m). Il baglio di 9,2 m è reale ed è soprattutto casse e pozzi mina: non va letto come un Druckkörper di nove metri.",
+      "Lamiera 20,5 mm a centro scafo (17 alle estremità), Navy Instruction 371/184; diametro del corpo resistente stimato (4,9 m). Il baglio di 9,2 m è reale ed è soprattutto casse e pozzi mina: non va letto come un Druckkörper di nove metri.",
     depthNote: "Collasso 200 m: stima prudente, non un dato di Rössler per questa classe.",
     blurb:
       "Posamine oceanico, fra i più grandi battelli tedeschi del conflitto. Pochi esemplari. U-234, che si arrese nel 1945 con un carico tecnico che includeva ossido di uranio, è di questo tipo. Nel modello il fasciame esterno larghissimo si lacera molto prima del corpo resistente: la nafta, qui, è quasi inevitabile.",
@@ -396,7 +396,7 @@ export const BOATS: Boat[] = [
     phLength: 60,
     phKnown: false,
     phDiameter: 5.0,
-    plateMm: 23,
+    plateMm: 26,
     collapseM: 260,
     constructionM: 135,
     testM: 210,
@@ -419,7 +419,7 @@ export const BOATS: Boat[] = [
     twin: true,
     deckGun: false,
     plateNote:
-      "23 mm è il valore citato in letteratura d'archivio. Altre sintesi dicono circa un pollice (25 mm). Il modello usa 23. Il Druckkörper vero è un otto: il diametro 5,0 m è il lobo superiore, non la sezione intera. La geometria 3D è un inviluppo, non quell'otto.",
+      "26 mm nel lobo superiore, 18 mm in quello inferiore: rapporto di Portsmouth Naval Shipyard 1946 su un XXI. Le sintesi d'archivio dicevano 23. Il modello usa 26, lo spessore del lobo di 5,0 m che rappresenta. Il Druckkörper vero è un otto: il diametro 5,0 m è il lobo superiore, non la sezione intera. La geometria 3D è un inviluppo, non quell'otto.",
     depthNote:
       "Le fonti non parlano della stessa cosa. Wikipedia elenca una test depth di 240 m. I rapporti USA del 1946 e le discussioni su Rössler descrivono un calcolo oltre i 330 m e cedimenti pratici, per saldature e tolleranze, fra 240 e 270 m, con deformazioni già verso i 300 m in prova. Il modello usa 260 m come collasso pratico.",
     blurb:
@@ -518,7 +518,7 @@ const FAMOUS: Famous[] = [
     base: "vii-c41",
     name: "U-995",
     blurb:
-      "VIIC/41 sopravvissuto, poi Kaura nella marina norvegese. Dal 1972 è il memoriale di Laboe, a pochi passi da Kiel. È il riferimento visivo migliore che resti di un VII: torre tarda, niente 88, Wintergarten. La lamiera da 21 mm è quella che il modello tratta come /41.",
+      "VIIC/41 sopravvissuto, poi Kaura nella marina norvegese. Dal 1972 è il memoriale di Laboe, a pochi passi da Kiel. È il riferimento visivo migliore che resti di un VII: torre tarda, niente 88, Wintergarten. La lamiera più spessa del /41 (+2,5 mm sul VIIC secondo le sintesi da Rössler) è quella che il modello tratta come /41.",
     fate: "Memoriale a Laboe dal 1972.",
   },
   {
@@ -603,7 +603,7 @@ export const BIBLIO = [
   {
     title: "Eberhard Rössler",
     detail:
-      "Storia della costruzione degli U-Boot. Da qui, via la letteratura d'archivio, vengono spessori e quote di progetto del Tipo VII: VIIC 18,5 mm, 100 / 150 / 250 m; VIIC/41 21 mm, 120 / 180 / 300 m.",
+      "Storia della costruzione degli U-Boot. Da qui, via la letteratura d'archivio, vengono spessori e quote di progetto del Tipo VII: VIIC 18,5 mm, 100 / 150 / 250 m; VIIC/41 21 mm, 120 / 180 / 300 m. Gli spessori del modello seguono invece le misure di guerra (U-570, rapporti di Portsmouth 1946); da Rössler resta l'incremento del /41.",
   },
   {
     title: "Erich Gröner, German Warships 1815–1945",

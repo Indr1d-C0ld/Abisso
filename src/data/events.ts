@@ -108,8 +108,8 @@ export const EVENTS: HistEvent[] = [
       "Lo scafo resse abbastanza da essere visitato. Quindici morti, trentadue catturati.",
     ],
     assumed: [
-      "Mark VII Heavy, diamante di passo 40 m, scarto 12 m a dritta e 4 m verso prua. Aubrietia portava cariche: questo non è il suo foglio.",
-      "Asse a 16 m, scoppio a 24 m: un colpo basso, vicino alla quota del periscopio. Il modello, così, dà falle lungo il corpo e non compartimenti aperti. È compatibile con un battello che si può ancora salire. Non è una misura.",
+      "Mark VII Heavy, diamante di passo 40 m, scarto 14 m a dritta e 4 m verso prua. Aubrietia portava cariche: questo non è il suo foglio.",
+      "Asse a 16 m, scoppio a 24 m: un colpo basso, vicino alla quota del periscopio. Il modello, così, dà falle lungo il corpo e non compartimenti aperti. È compatibile con un battello che si può ancora salire. Non è una misura. Lo scarto era 12 m; con gli spessori delle misure di guerra (25/11/2026) a 12 m il modello dava già una perdita, e lo si è portato a 14.",
     ],
     sources: [
       "uboat.net, U-110, «The Secret Capture».",
@@ -123,7 +123,7 @@ export const EVENTS: HistEvent[] = [
       axisDepth: 16,
       burstDepth: 24,
       missX: 4,
-      missZ: 12,
+      missZ: 14,
       spacing: 40,
       era: "1941",
     },
@@ -265,7 +265,7 @@ export const EVENTS: HistEvent[] = [
     ],
     assumed: [
       "Fila da 10 al posto delle 14, passo 22 m. Non è lo stesso schema, e l’arma è un Mark 6 al posto del Mark 8 del rapporto.",
-      "Asse a 22 m, scoppio a 18 m, scarto 14 m. Il modello dà falle, non un Druckkörper aperto: è la classe di danno di un battello che si poté rimorchiare. Una carica più vicina, nello stesso schema, lo segnerebbe già come perdita.",
+      "Asse a 22 m, scoppio a 18 m, scarto 16 m. Il modello dà falle, non un Druckkörper aperto: è la classe di danno di un battello che si poté rimorchiare. Una carica più vicina, nello stesso schema, lo segnerebbe già come perdita: con gli spessori delle misure di guerra (25/11/2026) a 14 m lo era, e lo scarto è passato a 16 m.",
     ],
     sources: [
       "U-boat Archive, rapporto Chatelain e rapporto del TG 22.3.",
@@ -279,7 +279,7 @@ export const EVENTS: HistEvent[] = [
       axisDepth: 22,
       burstDepth: 18,
       missX: 2,
-      missZ: 14,
+      missZ: 16,
       spacing: 22,
       speedKn: 4,
       era: "1944",

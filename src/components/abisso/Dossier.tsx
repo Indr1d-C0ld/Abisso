@@ -64,7 +64,7 @@ export function Method() {
       </p>
       <h3>2. L’ancora storica</h3>
       <p>
-        La Royal Navy stimò che il Mark VII da 290 lb di amatol fendesse un fasciame da circa 22 mm a 20 piedi (6,1 m) e potesse costringere un battello in superficie a circa 40 piedi. Con Torpex o Minol, a fine 1942, quelle distanze divennero 26 e 52 piedi. Il modello fissa la rottura del Tipo VIIC — 18,5 mm, diametro 4,70 m, quota 75 m, scoppio al traverso — sui 6,1 m dell’amatol. La curva degli effetti è costruita su quei due punti: rottura a 1×, allagamento grave a 2×, scossa oltre, niente oltre circa 7×.
+        La Royal Navy stimò che il Mark VII da 290 lb di amatol fendesse un fasciame da circa 22 mm a 20 piedi (6,1 m) e potesse costringere un battello in superficie a circa 40 piedi. Con Torpex o Minol, a fine 1942, quelle distanze divennero 26 e 52 piedi. Il modello fissa la rottura del Tipo VIIC — 22 mm come misurati sull’U-570, diametro 4,70 m, quota 75 m, scoppio al traverso — sui 6,1 m dell’amatol. La curva degli effetti è costruita su quei due punti: rottura a 1×, allagamento grave a 2×, scossa oltre, niente oltre circa 7×.
       </p>
       <p>
         Il solo equivalente TNT (amatol 0,85, TNT 1, Torpex e Minol 1,5) alzerebbe il raggio del Mark VII «nuovo» di circa il 21%. La stima RN parla di +30%. Il fattore di servizio sul raggio, {n(1.3 / Math.cbrt(1.5 / 0.85), 2)}, chiude quello scarto per Torpex e Minol e solo per loro. È una calibrazione, ed è dichiarata.

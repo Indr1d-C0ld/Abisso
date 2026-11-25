@@ -30,14 +30,36 @@ Ricerca del 24/11/2026. Stesse convenzioni di `FONTI-RISPOSTA.md`.
 | XXI | bulbo esterno 240 × 11, passo 800 mm (400 alle estremità) | fino a 26 mm in alto, 18 mm nel lobo inferiore | Portsmouth 1946, 2G-21 S11 |
 | IIB | non trovato (stima 500 mm) | non trovato | — |
 
-## Discrepanza aperta: spessori del catalogo
+## Spessori corretti con le misure di guerra (25/11/2026)
 
-Il catalogo dell'app (da Rössler e Stern, via sintesi secondarie) usa 18,5 mm per il VIIC,
-21 mm per il VIIC/41 e 23 mm per il XXI. Le misure di guerra sull'U-570 danno circa 22 mm
-a centro scafo; il rapporto USA sul XXI dà 26/18 mm. Lo spessore entra nella scala di
-scafo del modello di danno: correggerlo cambia gli esiti. **Non cambiato**: da decidere.
-Nota: la stima RN usata per calibrare il modello ("fende 22 mm a 20 ft") parla proprio
-di 22 mm.
+Il catalogo (Rössler e Stern via sintesi secondarie) usava 18,5 mm per VIIC, IX e XB,
+21 mm per il VIIC/41 e 23 mm per il XXI. Ora:
+
+| Classe | Prima | Ora | Stato |
+|---|---|---|---|
+| VIIC, VIIB | 18,5 | 22 | verificato (U-570); VIIB assunto uguale |
+| VIIC/41 | 21 | 24,5 | ricostruito: +2,5 mm delle sintesi applicati ai 22 misurati |
+| IXB, IXC, IXC/40 | 18,5 | 18 | verificato per il IXC/40 (Portsmouth 1946), assunto per gli altri |
+| XB | 18,5 | 20,5 | verificato (Navy Instruction 371/184) |
+| XXI | 23 | 26 | verificato per il lobo superiore (Portsmouth 1946); il lobo inferiore ha 18 mm |
+| IIB | 15,5 | 15,5 | non trovato |
+
+Il riferimento della scala di scafo (`hullScale`, `src/sim/model.ts`) passa da 18,5/4,7 a
+22/4,7: la stima RN di calibrazione ("fende 22 mm a 20 ft") parla del VIIC con 22 mm, e
+così l'esito del VIIC resta identico. Le altre classi si spostano rispetto al VIIC.
+
+Effetto su 9 607 combinazioni (5 battelli, tutte le armi e gli schemi, 3 quote, 4 scarti
+di scoppio, 5 mancate): 491 esiti cambiati (IXC 169, IIB 161, XXI 93, XB 66), quasi tutti
+tutti verso il peggio; VIIC invariato. Il motivo: il VIIC sale di 3,5 mm (+19%), le altre
+classi meno o per niente, quindi rispetto al riferimento diventano più deboli. Il IIB, senza
+misura, peggiora solo per lo spostamento del riferimento. Casi storici: U-110
+(9/5/1941) e U-505 (4/6/1944), entrambi catturati, passavano da "serio" a "perdita". Lo
+scarto laterale, già un'ipotesi dichiarata, è stato portato da 12 a 14 m (U-110) e da 14
+a 16 m (U-505): tornano "serio", con falle in ogni compartimento. Il ritocco è scritto
+nelle ipotesi di ciascun caso.
+
+Aperto: il diametro del Druckkörper del IX nel modello è 4,90 m (inviluppo), il rapporto
+di Portsmouth dà 4,40 m per il IXC/40. Non cambiato: tocca anche la geometria 3D.
 
 ## Petali
 
