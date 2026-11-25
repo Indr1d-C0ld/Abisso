@@ -23,7 +23,8 @@ documentato resta sempre separato da ciò che è ipotesi.
   frusta dello scafo, allagamento, assetto, emersione o implosione. Ogni fase ha la sua
   scala temporale (millisecondi, decimi di secondo, minuti), dichiarata sulla barra.
 - **Mostra il danno sullo scafo**: ammaccature, lamiera che rientra fra le ordinate,
-  squarci a petali, acqua nei locali, cloro nelle batterie, nafta in superficie.
+  squarci a petali, detriti che affondano o risalgono, acqua nei locali, carico sulle
+  paratie, cloro nelle batterie, nafta in superficie.
 - **Confronta** due casi affiancati con la stessa camera e la stessa barra del tempo.
 - **Ricostruisce casi storici** (U-99, U-110, U-175, U-202, U-505, U-736) con camera
   guidata e, fase per fase, una riga *Documentato* e una riga *Ipotesi*.
