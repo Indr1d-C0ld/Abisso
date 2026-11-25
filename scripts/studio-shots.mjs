@@ -1,6 +1,6 @@
 // Fotografa lo Studio con alcuni preset, da vicino. Uso:
 // node scripts/studio-shots.mjs [url] [preset...]   (preset = testo del pulsante)
-// Opzioni via env: FINISH=Atlantico, ZOOM=n (scatti di rotella), CAM=Traverso,
+// Opzioni via env: CASES=json dei casi conservati (per il confronto), FINISH=Atlantico, ZOOM=n (scatti di rotella), CAM=Traverso,
 // FOCUS=fx,fy (doppio clic in quel punto della vista, frazioni 0–1), SUFFIX=testo,
 // ZOOMAT=fx,fy (punto verso cui zoomare), INPUT='{"axisDepth":26,...}' (caso caricato prima dell'avvio). Preset "-" = nessun clic.
 import { chromium } from "playwright";
@@ -14,6 +14,9 @@ const b = await chromium.launch({
   args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"],
 });
 const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+if (process.env.CASES) {
+  await p.addInitScript((json) => localStorage.setItem("abisso.cases.v1", json), process.env.CASES);
+}
 if (process.env.INPUT) {
   await p.addInitScript((json) => localStorage.setItem("abisso.input.v1", json), process.env.INPUT);
 }
@@ -28,7 +31,7 @@ if (process.env.CAM) await click(process.env.CAM);
 for (const preset of presets) {
   if (preset !== "-") await click(preset);
   await p.waitForTimeout(6000);
-  const box = await p.locator(".viewport canvas").boundingBox();
+  const box = await p.locator(".viewport canvas").first().boundingBox();
   if (process.env.ZOOM && box) {
     const [zx, zy] = (process.env.ZOOMAT ?? "0.5,0.5").split(",").map(Number);
     await p.mouse.move(box.x + box.width * zx, box.y + box.height * zy);

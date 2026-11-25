@@ -5,6 +5,7 @@ import { WHIP_DAMPING, WHIP_VISUAL } from "@/render/effects/whip";
 import { n, type SimResult } from "@/sim/model";
 import { JET_LABEL, responseReport } from "@/sim/response";
 import { plateReport, STEEL_YIELD_PA } from "@/sim/plate";
+import { PlateSection } from "@/components/abisso/PlateSection";
 
 /** Bolla, scafo e superficie: le grandezze della Fase 3b, con le fonti e le ipotesi. */
 export function ResponseRead({ input, result }: { input: SimInput; result: SimResult }) {
@@ -54,6 +55,9 @@ export function ResponseRead({ input, result }: { input: SimInput; result: SimRe
           millimetri, con l'impulso di Cole non corretto per l'interazione acqua–lamiera. Il verdetto resta l'indice del
           modello: a quota il guscio cede per instabilità fra le ordinate, che questa formula non vede.
         </p>
+      )}
+      {nearest && nearest.deflectionM > 0.001 && (
+        <PlateSection frameM={plate.frame.m} thicknessM={plate.thicknessM} deflectionM={nearest.deflectionM} beyond={nearest.beyond} />
       )}
       {s && (
         <p>

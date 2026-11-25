@@ -317,6 +317,24 @@ export function effectFromU(u: number) {
   return 0;
 }
 
+/** Inversa di effectFromU: distanza (in raggi di rottura) a cui la gravità scende a s. */
+export function uOfEffect(s: number) {
+  if (s >= 1) return 0;
+  if (s > 0.92) return (1 - s) / 0.08;
+  if (s > 0.58) return 1 + (0.92 - s) / 0.34;
+  if (s > 0.2) return 2 + (0.58 - s) / 0.19;
+  if (s > 0) return 4 + 3 * (1 - s / 0.2);
+  return 7;
+}
+
+/** Soglie dei livelli di danno (le stesse di levelOf), dalla più grave. */
+export const LEVEL_THRESHOLDS: { level: Level; s: number; label: string }[] = [
+  { level: "rottura", s: 0.85, label: "Rottura" },
+  { level: "allagamento", s: 0.55, label: "Allagamento" },
+  { level: "falle", s: 0.28, label: "Falle" },
+  { level: "scossa", s: 0.1, label: "Scossa" },
+];
+
 export function levelOf(s: number): Level {
   if (s >= 0.85) return "rottura";
   if (s >= 0.55) return "allagamento";

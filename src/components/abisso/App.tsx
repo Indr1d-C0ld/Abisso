@@ -14,7 +14,11 @@ import { EVENTS, eventById } from "@/data/events";
 import { LEVEL_LABEL, bubblePeriod, bubbleRadius, coleBreakdown, coleMPa, describeHit, evaluate, initialShock, levelOf, n, referenceRadius, type ChargeResult, type FloodReport, type SimResult } from "@/sim/model";
 import { CAM_LABEL, useAbisso } from "@/state/store";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CompareRead } from "@/components/abisso/CompareRead";
+import { canRecord, exportImage, recordSequence, stopRecording } from "@/render/exporter";
+import { buildTimeline, displayToReal, segmentAt } from "@/sim/timeline";
+import { usePlayer } from "@/render/player";
 
 const PRESETS: { label: string; patch: Partial<SimInput> }[] = [
   { label: "14 m al traverso", patch: { weaponId: "mk7-heavy-torpex", pattern: "single", missX: 0, missZ: 14, axisDepth: 70, burstDepth: 70, applyDrift: false } },
@@ -365,10 +369,37 @@ export function App() {
     }
   }, [input]);
 
+  // Confronto (Fase 5): un caso conservato affiancato a quello corrente.
+  const [compareId, setCompareId] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const other = useMemo(() => {
+    const c = cases.find((x) => x.id === compareId);
+    if (!c) return null;
+    try {
+      const result = evaluate(c.input);
+      return { title: c.title, input: c.input, result, duration: buildTimeline(c.input, result).duration };
+    } catch {
+      return null;
+    }
+  }, [cases, compareId]);
+
   const boat = boatById(input.boatId);
   const event = eventById(eventId);
   const weapon = weaponById(input.weaponId);
   const allowed = patternsFor(weapon.kind);
+
+  // Didascalie dell'esportazione: una per vista, con la fase della barra del tempo.
+  const captions = () => {
+    if (!computed.ok) return [];
+    const t = usePlayer.getState().t;
+    const line = (title: string, inp: SimInput, res: SimResult) => {
+      const tl = buildTimeline(inp, res);
+      const seg = segmentAt(tl, Math.min(t, tl.duration));
+      return `ABISSO · ${title} · ${res.outcomeLabel} · ${seg.label}, ${n(displayToReal(tl, t), 1)} s dal lancio`;
+    };
+    const own = line(`${boat.name}, ${weapon.short}, ${n(input.axisDepth, 0)} m`, input, computed.data);
+    return other ? [own, line(other.title, other.input, other.result)] : [own];
+  };
 
   return (
     <div className="app-shell">
@@ -547,12 +578,32 @@ export function App() {
                   Sezione
                 </button>
                 <button type="button" className="chip" data-on={spheres} onClick={() => toggle("spheres")}>
-                  Raggio di rottura
+                  Soglie di danno
                 </button>
               </div>
               <button type="button" className="preset" onClick={() => boom()}>
                 Ripeti lo scoppio
               </button>
+              <div className="export-row">
+                <button type="button" className="ghost" onClick={() => void exportImage(captions())}>
+                  Esporta immagine
+                </button>
+                {canRecord() && (
+                  <button
+                    type="button"
+                    className="ghost"
+                    data-on={recording}
+                    onClick={() => {
+                      if (recording) return stopRecording();
+                      setRecording(true);
+                      void recordSequence(captions).finally(() => setRecording(false));
+                    }}
+                  >
+                    {recording ? "Ferma e salva" : "Registra sequenza"}
+                  </button>
+                )}
+              </div>
+              {recording && <p className="note">Registrazione in corso: la ricostruzione riparte dall'inizio e il video WebM si salva alla fine.</p>}
 
               <p className="meta">Casi conservati su questo dispositivo</p>
               <button
@@ -568,7 +619,18 @@ export function App() {
                     {c.title}
                     <small>{c.outcome}</small>
                   </button>
-                  <button type="button" className="ghost" onClick={() => deleteCase(c.id)} aria-label="Elimina caso">
+                  <button type="button" className="ghost" data-on={compareId === c.id} onClick={() => setCompareId(compareId === c.id ? null : c.id)}>
+                    {compareId === c.id ? "Chiudi confronto" : "Confronta"}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => {
+                      if (compareId === c.id) setCompareId(null);
+                      deleteCase(c.id);
+                    }}
+                    aria-label="Elimina caso"
+                  >
                     Elimina
                   </button>
                 </div>
@@ -576,6 +638,62 @@ export function App() {
             </section>
 
             <section className={`viewport ${mobile === "model" ? "" : "pane-hide"}`}>
+              {other ? (
+                <div className="split">
+                  <div className="split-pane">
+              <Scene
+                active={tab === "studio"}
+                input={input}
+                result={computed.data}
+                xray={xray}
+                cut={cut}
+                spheres={spheres}
+                interior={interior}
+                cam={cam}
+                shot={shot}
+                finish={finish}
+                skin={skin}
+                sea={sea}
+                quality={quality}
+                minDuration={other?.duration ?? 0}
+                probe={probe}
+                selected={selected}
+                onHit={(x, y, z) => setProbe(describeHit(input, computed.data, x, y, z))}
+                onMiss={() => setProbe(null)}
+              />
+                    <div className="split-tag">
+                      Caso corrente
+                      <small>{computed.data.outcomeLabel}</small>
+                    </div>
+                  </div>
+                  <div className="split-pane">
+                    <Scene
+                      active={tab === "studio"}
+                      input={other.input}
+                      result={other.result}
+                      xray={xray}
+                      cut={cut}
+                      spheres={spheres}
+                      interior={interior}
+                      cam={cam}
+                      shot={shot}
+                      finish={finish}
+                      skin={skin}
+                      sea={sea}
+                      quality={quality}
+                      follow
+                      probe={null}
+                      selected={null}
+                      onHit={() => {}}
+                      onMiss={() => {}}
+                    />
+                    <div className="split-tag">
+                      {other.title}
+                      <small>{other.result.outcomeLabel}</small>
+                    </div>
+                  </div>
+                </div>
+              ) : (
               <Scene
                 active={tab === "studio"}
                 input={input}
@@ -595,6 +713,7 @@ export function App() {
                 onHit={(x, y, z) => setProbe(describeHit(input, computed.data, x, y, z))}
                 onMiss={() => setProbe(null)}
               />
+              )}
               <div className="hud">
                 {finish === "atlantico" && !interior && !xray ? (
                   <div className="legend" data-mode="atlantico">
@@ -756,6 +875,7 @@ export function App() {
 
               <ResponseRead input={input} result={computed.data} />
               <ConsequencesRead input={input} result={computed.data} />
+              {other && <CompareRead a={{ title: "Caso corrente", input, result: computed.data }} b={other} />}
 
               <div className="paper">
                 <h3>Pressione di picco e effetto</h3>

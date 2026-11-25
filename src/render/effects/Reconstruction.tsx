@@ -4,7 +4,7 @@ import { Suspense, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { ChargeModel } from "@/components/abisso/ChargeModel";
 import { chargeModelFor } from "@/components/abisso/chargeModels";
-import { coleMPa, SOUND_MPS, type SimResult } from "@/sim/model";
+import { coleMPa, LEVEL_THRESHOLDS, n, SOUND_MPS, uOfEffect, type SimResult } from "@/sim/model";
 import type { ResponseReport } from "@/sim/response";
 import {
   bubbleRadius,
@@ -27,6 +27,9 @@ const YIELD_COLOR = { full: "#b5523a", mechanical: "#c6a15a", none: "#8a8070" } 
 const FLASH_SCREEN_S = 0.45;
 
 const realNow = (tl: Timeline) => displayToReal(tl, usePlayer.getState().t);
+
+const ISO_COLOR: Record<string, string> = { rottura: "#2a1814", allagamento: "#b5523a", falle: "#d4783a", scossa: "#c6a15a" };
+const ISO_OPACITY = [0.2, 0.12, 0.08, 0.05];
 
 /** Cariche in discesa con deriva e rotazione; lo scoppio pieno le consuma. */
 export function Charges({
@@ -58,8 +61,8 @@ export function Charges({
     });
   });
   const drawn = useMemo(() => {
-    const live = result.charges.filter((c) => c.yield === "full");
-    return live.length > 6 ? [...live].sort((a, b) => a.slantPh - b.slantPh).slice(0, 4) : live;
+    const live = result.charges.filter((c) => c.yield === "full").sort((a, b) => a.slantPh - b.slantPh);
+    return live.length > 6 ? live.slice(0, 4) : live;
   }, [result]);
   return (
     <group>
@@ -91,13 +94,36 @@ export function Charges({
           </group>
         );
       })}
+      {/* Isosuperfici del campo di gravità sul Druckkörper: una sfera per soglia, raggio
+          u(s) · rSplit, con u inversa della curva degli effetti. */}
       {spheres &&
-        drawn.map((c) => (
-          <mesh key={`${c.id}-r`} position={[c.x, c.y, c.z]}>
-            <sphereGeometry args={[Math.max(0.8, c.rSplit), 24, 16]} />
-            <meshBasicMaterial color="#b5523a" wireframe transparent opacity={0.2} />
-          </mesh>
-        ))}
+        drawn.map((c, ci) =>
+          LEVEL_THRESHOLDS.map((th, k) => {
+            const r = Math.max(0.8, c.rSplit * uOfEffect(th.s));
+            return (
+              <group key={`${c.id}-${th.level}`} position={[c.x, c.y, c.z]}>
+                <mesh renderOrder={5 + k}>
+                  <sphereGeometry args={[r, 40, 24]} />
+                  <meshBasicMaterial color={ISO_COLOR[th.level]} transparent opacity={ISO_OPACITY[k]} depthWrite={false} side={THREE.DoubleSide} />
+                </mesh>
+                {[
+                  [Math.PI / 2, 0, 0],
+                  [0, 0, 0],
+                ].map((rot, j) => (
+                  <mesh key={j} rotation={rot as [number, number, number]}>
+                    <torusGeometry args={[r, 0.04, 6, 96]} />
+                    <meshBasicMaterial color={ISO_COLOR[th.level]} transparent opacity={0.85} />
+                  </mesh>
+                ))}
+                {ci === 0 && (
+                  <Html position={[0, r, 0]} center distanceFactor={60} className="wave-tag" zIndexRange={[5, 0]}>
+                    {th.label} · {n(r, 1)} m
+                  </Html>
+                )}
+              </group>
+            );
+          }),
+        )}
     </group>
   );
 }

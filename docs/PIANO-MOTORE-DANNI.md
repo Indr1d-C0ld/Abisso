@@ -158,6 +158,12 @@ cloro, quote di collasso in fonte primaria.
 - Confronto di due casi affiancati con la stessa camera.
 - Esportazione di immagini e sequenze.
 
+**Stato (25/11/2026): fatta.** "Soglie di danno": isosuperfici delle quattro soglie attorno
+a ogni carica (raggio u(s) · rSplit, inversa della curva degli effetti); sezione al vero
+della lamiera fra le ordinate nel report; confronto affiancato con un caso conservato
+(stessa camera, stessa barra del tempo, tabella delle differenze); esportazione PNG e
+WebM con didascalia, tutta nel browser. La mappa sullo scafo era già la resa *Controllo*.
+
 ### Fase 6 — Casi storici ricostruiti
 - Gli eventi già catalogati (U-99, U-110, U-505…) riprodotti con la linea del tempo e
   camere guidate, con le parti documentate e quelle ipotizzate sempre separate a schermo.

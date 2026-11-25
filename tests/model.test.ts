@@ -107,3 +107,12 @@ test("Squid centrato aggancia uno scafo lungo", () => {
 test("i battelli storici ereditano la famiglia della classe", () => {
   assert.equal(boatById("u96").family, "VII");
 });
+
+test("uOfEffect è l'inversa di effectFromU sulle soglie", async () => {
+  const { effectFromU, uOfEffect, LEVEL_THRESHOLDS, levelOf } = await import("@/sim/model");
+  for (const th of LEVEL_THRESHOLDS) {
+    const u = uOfEffect(th.s);
+    assert.ok(Math.abs(effectFromU(u) - th.s) < 1e-9, `${th.level}: ${effectFromU(u)}`);
+    assert.equal(levelOf(effectFromU(u - 1e-6)), th.level);
+  }
+});

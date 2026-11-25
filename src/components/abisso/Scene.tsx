@@ -916,12 +916,42 @@ function onSkin(wounds: Wound[], skin: THREE.Object3D | null): Wound[] {
 }
 
 /** Avanza l'orologio della ricostruzione a ogni fotogramma. */
+/**
+ * Camera condivisa per il confronto affiancato (Fase 5): la vista principale la scrive a
+ * ogni fotogramma, la seconda la copia. Stessa camera, stesso istante a schermo.
+ */
+const sharedCam = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), ready: false };
+
+function CameraShare({ follow }: { follow: boolean }) {
+  useFrame(({ camera }) => {
+    if (follow) {
+      if (!sharedCam.ready) return;
+      camera.position.copy(sharedCam.pos);
+      camera.quaternion.copy(sharedCam.quat);
+      camera.updateMatrixWorld();
+      return;
+    }
+    sharedCam.pos.copy(camera.position);
+    sharedCam.quat.copy(camera.quaternion);
+    sharedCam.ready = true;
+  }, -1);
+  return null;
+}
+
 function PlayerClock() {
   useFrame((_, dt) => usePlayer.getState().tick(Math.min(dt, 0.1)));
   return null;
 }
 
-type ViewProps = { skin: boolean; sea: boolean; quality: "alta" | "media" };
+type ViewProps = {
+  skin: boolean;
+  sea: boolean;
+  quality: "alta" | "media";
+  /** Seconda vista del confronto: copia camera e orologio della principale. */
+  follow?: boolean;
+  /** Durata minima della riproduzione (la ricostruzione più lunga fra le due viste). */
+  minDuration?: number;
+};
 
 function Stage({
   input,
@@ -936,6 +966,8 @@ function Stage({
   skin,
   sea,
   quality,
+  follow = false,
+  minDuration = 0,
   probe,
   selected,
   onHit,
@@ -967,8 +999,8 @@ function Stage({
   const report = useMemo(() => responseReport(boat, input, result), [boat, input, result]);
   // Ogni nuovo colpo (o "Ripeti lo scoppio") riparte dall'inizio.
   useEffect(() => {
-    usePlayer.getState().restart(timeline.duration);
-  }, [timeline, shot]);
+    if (!follow) usePlayer.getState().restart(Math.max(timeline.duration, minDuration));
+  }, [timeline, shot, follow, minDuration]);
   const hit = useMemo(() => {
     const live = result.charges.filter((c) => c.yield === "full").sort((a, b) => a.slantPh - b.slantPh)[0];
     return live ? ([...contactOnPh(boat.id, live.x, live.y, live.z)] as [number, number, number]) : null;
@@ -1006,9 +1038,10 @@ function Stage({
         </>
       )}
       <PostFX mode={finish} quality={quality} />
-      <CameraRig cam={cam} loa={boat.loa} focus={focus} />
+      {!follow && <CameraRig cam={cam} loa={boat.loa} focus={focus} />}
+      <CameraShare follow={follow} />
       <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} timeline={timeline} report={report} onHit={onHit} onFocus={(x, y, z) => setFocus((f) => ({ x, y, z, n: (f?.n ?? 0) + 1 }))} />
-      <PlayerClock />
+      {!follow && <PlayerClock />}
       <Charges timeline={timeline} result={result} weaponId={input.weaponId} spheres={spheres} />
       <Flashes timeline={timeline} />
       <ShockFronts timeline={timeline} result={result} subtle={atlantic} hit={hit} />
@@ -1041,7 +1074,7 @@ function Stage({
           <gridHelper args={[boat.loa * 1.7, 18, "#8c7040", "#8ea096"]} position={[0, -mid.ry - 1.35, 0]} />
         </group>
       )}
-      <OrbitControls
+      {!follow && <OrbitControls
         makeDefault
         zoomToCursor
         enableDamping
@@ -1050,7 +1083,7 @@ function Stage({
         minDistance={2.5}
         maxDistance={Math.max(120, boat.loa * 3.4)}
         maxPolarAngle={Math.PI * 0.92}
-      />
+      />}
     </>
   );
 }
@@ -1094,6 +1127,8 @@ export function Scene({
   skin,
   sea,
   quality,
+  follow,
+  minDuration,
   probe,
   selected,
   onHit,
@@ -1121,7 +1156,7 @@ export function Scene({
         camera={{ position: [52, 23, 72], fov: 46, near: 0.2, far: 900 }}
         dpr={quality === "alta" ? [1, 2] : [1, 1.25]}
         frameloop={active ? "always" : "never"}
-        gl={{ antialias: false, localClippingEnabled: true, alpha: false, powerPreference: "high-performance" }}
+        gl={{ antialias: false, localClippingEnabled: true, alpha: false, powerPreference: "high-performance", preserveDrawingBuffer: true }}
         onCreated={({ camera }) => camera.lookAt(0, 0.4, 0)}
         onPointerMissed={() => onMiss()}
       >
@@ -1138,6 +1173,8 @@ export function Scene({
           skin={skin}
           sea={sea}
           quality={quality}
+          follow={follow}
+          minDuration={minDuration}
           probe={probe}
           selected={selected}
           onHit={onHit}
