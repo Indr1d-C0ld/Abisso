@@ -51,6 +51,14 @@ export type DamageUniforms = {
   /** Spostamento verticale della frusta alle estremità, m (già moltiplicato per seno e smorzamento). */
   uWhip: { value: number };
   uLoa: { value: number };
+  /**
+   * Posa del battello (assetto della Fase 4) e sua inversa. Le ferite sono nel riferimento
+   * del battello: lo shader torna lì, deforma e poi riapplica la posa.
+   */
+  uBoat: { value: THREE.Matrix4 };
+  uBoatInv: { value: THREE.Matrix4 };
+  /** Implosione del corpo resistente, 0–1 (Fase 4). */
+  uCrush: { value: number };
 };
 
 export function createDamageUniforms(): DamageUniforms {
@@ -66,6 +74,9 @@ export function createDamageUniforms(): DamageUniforms {
     uMode: { value: 0 },
     uWhip: { value: 0 },
     uLoa: { value: 67 },
+    uBoat: { value: new THREE.Matrix4() },
+    uBoatInv: { value: new THREE.Matrix4() },
+    uCrush: { value: 0 },
   };
 }
 
@@ -153,16 +164,34 @@ uniform float uFrameS;
 uniform float uMode;
 uniform float uWhip;
 uniform float uLoa;
+uniform mat4 uBoat;
+uniform mat4 uBoatInv;
+uniform float uCrush;
 varying vec3 vDmgWorld;
 // Primo modo libero–libero (src/sim/response.ts), normalizzato a 1 alle estremità.
 float whipMode( float xi ) {
   float b = 4.730040745 * clamp( xi, 0.0, 1.0 );
   return 0.5 * ( cosh( b ) + cos( b ) - 0.982502215 * ( sinh( b ) + sin( b ) ) );
 }
+// Implosione: la sezione si ovalizza e cede fra le ordinate (instabilità generale), verso
+// l'asse. Forma di resa, non calcolata: ovalizzazione n = 2 simmetrica (niente flessione
+// apparente dello scafo), sette campate lungo lo scafo, estremità più rigide.
+vec3 crushOffset( vec3 p ) {
+  if ( uCrush <= 0.0 ) return vec3( 0.0 );
+  float r = length( p.yz );
+  if ( r < 0.05 ) return vec3( 0.0 );
+  float th = atan( p.y, p.z );
+  float lobe = 0.3 + 0.7 * max( 0.0, cos( 2.0 * th ) );
+  float xi = p.x / uLoa + 0.5;
+  float bay = sin( 3.14159265 * xi * 7.0 );
+  float env = smoothstep( 0.03, 0.15, xi ) * smoothstep( 0.03, 0.15, 1.0 - xi );
+  float d = uCrush * 0.5 * min( r, 2.4 ) * lobe * ( 0.4 + 0.6 * bay * bay ) * env;
+  return vec3( 0.0, -p.y / r * d, -p.z / r * d );
+}
 `;
 
 const VERTEX_PROJECT = /* glsl */ `
-vec4 dmgWorld = modelMatrix * vec4( transformed, 1.0 );
+vec4 dmgWorld = uBoatInv * modelMatrix * vec4( transformed, 1.0 );
 // Ammaccature: stesso profilo di stamp() (u², verso l'asse del battello).
 vec3 dmgP = dmgWorld.xyz;
 for ( int i = 0; i < MAX_WOUNDS; i++ ) {
@@ -179,7 +208,9 @@ for ( int i = 0; i < MAX_WOUNDS; i++ ) {
   }
 }
 dmgWorld.y += uWhip * whipMode( dmgP.x / uLoa + 0.5 );
+dmgWorld.xyz += crushOffset( dmgP );
 vDmgWorld = dmgP;
+dmgWorld = uBoat * dmgWorld;
 vec4 mvPosition = viewMatrix * dmgWorld;
 gl_Position = projectionMatrix * mvPosition;
 `;
@@ -322,7 +353,7 @@ export function applyDamage(mat: THREE.MeshStandardMaterial, uniforms: DamageUni
       .replace("#include <metalnessmap_fragment>", `#include <metalnessmap_fragment>\n${FRAGMENT_METAL}`)
       .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>\n${FRAGMENT_NORMAL}`);
   };
-  mat.customProgramCacheKey = () => "abisso-damage-v4";
+  mat.customProgramCacheKey = () => "abisso-damage-v5";
   mat.needsUpdate = true;
   return mat;
 }
@@ -339,9 +370,11 @@ export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: Damag
       .replace("#include <common>", `#include <common>\n${COMMON}`)
       .replace(
         "#include <project_vertex>",
-        `vec4 bw = modelMatrix * vec4( transformed, 1.0 );
+        `vec4 bw = uBoatInv * modelMatrix * vec4( transformed, 1.0 );
         vDmgWorld = bw.xyz;
         bw.y += uWhip * whipMode( bw.x / uLoa + 0.5 );
+        bw.xyz += crushOffset( vDmgWorld );
+        bw = uBoat * bw;
         vec4 mvPosition = viewMatrix * bw;
         gl_Position = projectionMatrix * mvPosition;`,
       );
@@ -370,7 +403,7 @@ export function applyBreachMask(mat: THREE.MeshStandardMaterial, uniforms: Damag
         }`,
       );
   };
-  mat.customProgramCacheKey = () => "abisso-breach-v4";
+  mat.customProgramCacheKey = () => "abisso-breach-v5";
   mat.needsUpdate = true;
   return mat;
 }

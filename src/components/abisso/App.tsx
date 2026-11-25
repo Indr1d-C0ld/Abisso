@@ -9,6 +9,7 @@ import { EventCard, EventLibrary } from "@/components/abisso/Events";
 import { Archive, Method } from "@/components/abisso/Dossier";
 import { TimelineBar } from "@/components/abisso/TimelineBar";
 import { ResponseRead } from "@/components/abisso/ResponseRead";
+import { ConsequencesRead } from "@/components/abisso/ConsequencesRead";
 import { EVENTS, eventById } from "@/data/events";
 import { LEVEL_LABEL, bubblePeriod, bubbleRadius, coleBreakdown, coleMPa, describeHit, evaluate, initialShock, levelOf, n, referenceRadius, type ChargeResult, type FloodReport, type SimResult } from "@/sim/model";
 import { CAM_LABEL, useAbisso } from "@/state/store";
@@ -754,6 +755,7 @@ export function App() {
               <BubbleRead charges={computed.data.charges} weq={computed.data.weq} />
 
               <ResponseRead input={input} result={computed.data} />
+              <ConsequencesRead input={input} result={computed.data} />
 
               <div className="paper">
                 <h3>Pressione di picco e effetto</h3>

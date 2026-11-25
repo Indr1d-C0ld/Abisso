@@ -63,6 +63,12 @@ export type FloodRow = {
   minTrapped: number;
   trappedFill: number;
   tonnes: number;
+  /** Curva di riempimento del locale, t in minuti, frazione del volume con aria intrappolata. */
+  series: { t: number; trapped: number }[];
+  /** Centro del locale lungo l'asse, m (prua verso +x). */
+  xMid: number;
+  lengthM: number;
+  radiusM: number;
 };
 
 export type FloodReport = {
@@ -152,6 +158,10 @@ export function floodReport(boat: Boat, comps: CompResult[], depthM: number): Fl
       minTrapped: clock.minTrapped,
       trappedFill: clock.trappedFill,
       tonnes: volume * 1.025,
+      series: clock.series.map((p) => ({ t: p.t, trapped: p.trapped })),
+      xMid: (c.x0 + c.x1) / 2,
+      lengthM: length,
+      radiusM: r,
     };
   });
   const worst = [...rows].sort((a, b) => b.holeCm2 - a.holeCm2)[0];

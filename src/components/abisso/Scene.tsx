@@ -5,6 +5,9 @@ import { severityAtPoint } from "@/sim/model";
 import { outerPoint, stationRadii, towerBox } from "@/sim/shape";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Flooding } from "@/render/effects/Flooding";
+import { HullConsequences, OilSlick } from "@/render/effects/Consequences";
+import { crushAt, hydroAt } from "@/sim/hydrostatics";
 import { Component, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { BoatModel } from "@/components/abisso/BoatModel";
@@ -577,17 +580,33 @@ function Hull({
   // Il danno compare quando l'onda di ciascuna carica arriva sul Druckkörper.
   const arrival = useMemo(() => arrivalFn(timeline), [timeline]);
   const shards = useRef<THREE.Group>(null);
+  const pose = useRef<THREE.Group>(null);
   useFrame(() => {
+    const tReal = displayToReal(timeline, usePlayer.getState().t);
     applyDamageTime(damage, arrival);
     damage.uLoa.value = boatById(boatId).loa;
-    damage.uWhip.value = whipAt(report, timeline, displayToReal(timeline, usePlayer.getState().t));
+    damage.uWhip.value = whipAt(report, timeline, tReal);
+    damage.uCrush.value = crushAt(timeline.hydro, tReal);
     if (shards.current) shards.current.visible = wounds.some((w) => arrival(w.chargeId) > 0.5);
+    // Assetto da acqua imbarcata (Fase 4): il gruppo ruota, lo shader del danno lavora
+    // nel riferimento del battello e riapplica la posa.
+    const g = pose.current;
+    if (g) {
+      g.rotation.z = hydroAt(timeline.hydro, tReal).pitch;
+      g.updateMatrixWorld(true);
+      damage.uBoat.value.copy(g.matrixWorld);
+      damage.uBoatInv.value.copy(g.matrixWorld).invert();
+    }
   });
+  // I punti cliccati tornano nel riferimento del battello.
+  const local = (p: THREE.Vector3) => (pose.current ? pose.current.worldToLocal(p.clone()) : p);
   return (
     <group
+      ref={pose}
       onClick={(e) => {
         e.stopPropagation();
-        onHit(e.point.x, e.point.y, e.point.z);
+        const p = local(e.point);
+        onHit(p.x, p.y, p.z);
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -631,6 +650,8 @@ function Hull({
         <Petals wounds={petalWounds} planes={planes} atlantic={finish === "atlantico"} />
       </group>
       {interior && <InteriorFit boatId={boat.id} result={result} planes={planes} />}
+      {(ghost || cut) && <Flooding boat={boat} result={result} timeline={timeline} track={timeline.hydro} planes={planes} />}
+      <HullConsequences result={result} timeline={timeline} wounds={petalWounds} loa={boat.loa} />
       {!showSkin && <Casing boatId={boat.id} finish={finish} planes={planes} />}
       {!showSkin && <Fittings boatId={boat.id} era={era} charges={result.charges} eraCut={planes} />}
     </group>
@@ -938,6 +959,11 @@ function Stage({
   const atlantic = finish === "atlantico";
   const [focus, setFocus] = useState<Focus>(null);
   const timeline = useMemo(() => buildTimeline(input, result), [input, result]);
+  // Quota viva dell'asse (Fase 4): il battello resta al centro, il mare si sposta.
+  const liveDepth = usePlayer((s) => {
+    const d = hydroAt(timeline.hydro, displayToReal(timeline, s.t)).depth;
+    return d < 12 ? Math.round(d * 4) / 4 : Math.round(d / 2) * 2;
+  });
   const report = useMemo(() => responseReport(boat, input, result), [boat, input, result]);
   // Ogni nuovo colpo (o "Ripeti lo scoppio") riparte dall'inizio.
   useEffect(() => {
@@ -956,6 +982,13 @@ function Stage({
     scene.fog = null;
   }, [scene, gl, atlantic]);
   const sel = result.compartments.find((c) => c.id === (selected ?? probe?.compId));
+  // In Controllo il pavimento si abbassa quando il battello si inclina, per non tagliarlo.
+  const floor = useRef<THREE.Group>(null);
+  useFrame(() => {
+    if (!floor.current) return;
+    const p = hydroAt(timeline.hydro, displayToReal(timeline, usePlayer.getState().t)).pitch;
+    floor.current.position.y = -(boat.loa / 2) * Math.abs(Math.sin(p));
+  });
   const ring = (x: number) => {
     const s = stationRadii(boat, clampT(x, boat.loa));
     return Math.max(s.rx, s.ry) * 1.02;
@@ -963,7 +996,7 @@ function Stage({
   return (
     <>
       {atlantic ? (
-        <Atlantic depth={input.axisDepth} loa={boat.loa} sea={sea} quality={quality} />
+        <Atlantic depth={liveDepth} loa={boat.loa} sea={sea} quality={quality} />
       ) : (
         <>
           <hemisphereLight args={["#f7f4ee", "#9aa59c", 0.72]} />
@@ -982,6 +1015,7 @@ function Stage({
       <Bubbles timeline={timeline} subtle={atlantic} />
       <Jets timeline={timeline} report={report} />
       {atlantic && sea && <SurfaceDome timeline={timeline} report={report} surfaceY={timeline.surfaceY} />}
+      {atlantic && sea && <OilSlick result={result} timeline={timeline} surfaceY={liveDepth} />}
       {sel && (
         <group>
           {[sel.x0, sel.x1].map((x) => (
@@ -999,13 +1033,13 @@ function Stage({
         </mesh>
       )}
       {!atlantic && (
-        <>
+        <group ref={floor}>
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -mid.ry - 1.4, 0]}>
             <circleGeometry args={[boat.loa * 0.95, 64]} />
             <meshStandardMaterial color="#c5d0c8" roughness={1} metalness={0} />
           </mesh>
           <gridHelper args={[boat.loa * 1.7, 18, "#8c7040", "#8ea096"]} position={[0, -mid.ry - 1.35, 0]} />
-        </>
+        </group>
       )}
       <OrbitControls
         makeDefault

@@ -2,6 +2,8 @@ import type { SimInput } from "@/data/types";
 import { weaponById } from "@/data/weapons";
 import { SOUND_MPS, type SimResult } from "@/sim/model";
 import { CYCLE_PERIOD, CYCLE_RADIUS, migrationFirst, migrationProfile } from "@/sim/response";
+import { boatById } from "@/data/boats";
+import { hydroTrack, IMPLOSION_BUBBLE_S, IMPLOSION_S, type HydroTrack } from "@/sim/hydrostatics";
 
 /**
  * Linea del tempo della ricostruzione, derivata dal risultato del modello.
@@ -20,7 +22,7 @@ import { CYCLE_PERIOD, CYCLE_RADIUS, migrationFirst, migrationProfile } from "@/
  * risalita nel terzo ciclo (estrapolata a un quarto della prima).
  */
 
-export type SegmentId = "discesa" | "onda" | "bolla" | "allagamento";
+export type SegmentId = "discesa" | "onda" | "bolla" | "allagamento" | "implosione";
 
 export type Segment = {
   id: SegmentId;
@@ -60,13 +62,15 @@ export type Timeline = {
   tBubbleEnd: number;
   /** Superficie del mare nel sistema della scena. */
   surfaceY: number;
+  /** Peso, assetto e quota durante l'allagamento (Fase 4). */
+  hydro: HydroTrack;
 };
 
 /** Cicli della bolla rappresentati. */
 export const BUBBLE_CYCLES = 3;
 
 /** Durate a schermo dei segmenti, secondi. */
-const SCREEN = { discesa: 8, onda: 4.5, bolla: 7, allagamento: 8 } as const;
+const SCREEN = { discesa: 8, onda: 4.5, bolla: 7, allagamento: 8, implosione: 3.5 } as const;
 
 export function buildTimeline(input: SimInput, result: SimResult): Timeline {
   const weapon = weaponById(input.weaponId);
@@ -114,12 +118,19 @@ export function buildTimeline(input: SimInput, result: SimResult): Timeline {
     // Solo urti meccanici o colpi a vuoto: un breve tratto dopo l'ultimo arrivo.
     push("bolla", "Dopo l'urto", tFirst, tLast + 1.5, 3);
   }
-  if (!result.flood.dry) {
-    const worst = result.flood.rows.reduce((m, r) => Math.max(m, r.minTrapped), 0);
-    const last = segments[segments.length - 1];
-    push("allagamento", "Allagamento", last.t1, last.t1 + worst * 60, SCREEN.allagamento);
+  const boat = boatById(input.boatId);
+  const tAfter = segments[segments.length - 1].t1;
+  const worst = result.flood.rows.reduce((m, r) => Math.max(m, r.minTrapped), 0);
+  // L'allagamento finisce prima se il battello emerge o supera la quota di collasso.
+  const hydro = hydroTrack(boat, result, input.axisDepth, tAfter, worst * 60);
+  if (!result.flood.dry && hydro.span > 0) {
+    push("allagamento", "Allagamento", tAfter, tAfter + hydro.span, SCREEN.allagamento);
   }
-  return { segments, duration: d, tracks, tBubbleEnd, surfaceY };
+  if (hydro.tCollapse !== null) {
+    const t0 = hydro.t0 + hydro.tCollapse;
+    push("implosione", "Implosione", t0, t0 + IMPLOSION_S + IMPLOSION_BUBBLE_S * 1.3, SCREEN.implosione);
+  }
+  return { segments, duration: d, tracks, tBubbleEnd, surfaceY, hydro };
 }
 
 /** Durata dei cicli della bolla rappresentati, secondi. */

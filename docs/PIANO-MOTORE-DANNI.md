@@ -143,6 +143,14 @@ parametrico (vista senza modello 3D) non mostra comparsa del danno né frusta.
 - Nafta: chiazza che risale in superficie dalle casse esterne lesionate.
 - Collasso idrostatico: implosione del Druckkörper oltre la quota di calcolo.
 
+**Stato (25/11/2026): fatta**, fonti in `docs/FONTI-CONSEGUENZE.md`. Acqua nei locali con
+pelo libero orizzontale (viste interne, raggi X, sezione); `hydrostatics.ts` con assetto,
+soffiatura limitata dall'aria di bordo, caduta, emersione e implosione (segmento proprio
+nella barra del tempo); sfiati d'aria, nafta dalle casse e chiazza in superficie; cloro
+nel locale batterie; mare che si sposta con la quota. **Non fatto**: interni dettagliati
+Thrixel (13 cubi disponibili contro i 200–350 stimati). Aperti: BG degli U-Boot, tassi del
+cloro, quote di collasso in fonte primaria.
+
 ### Fase 5 — Lettura analitica
 - Isosuperfici del campo di gravità (soglie scossa, falle, allagamento, rottura) e mappa
   sullo scafo.

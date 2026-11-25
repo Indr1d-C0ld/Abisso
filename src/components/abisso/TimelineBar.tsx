@@ -6,6 +6,7 @@ import { usePlayer } from "@/render/player";
 import { WHIP_VISUAL } from "@/render/effects/whip";
 import { boatById } from "@/data/boats";
 import { JET_LABEL, responseReport } from "@/sim/response";
+import { hydroAt, oilRiseS, IMPLOSION_S } from "@/sim/hydrostatics";
 
 
 /** Fattore di scala del segmento, scritto come lo legge chi guarda. */
@@ -21,7 +22,9 @@ function clockLabel(s: Segment, tReal: number, tFirst: number) {
   if (s.id === "discesa") return `${n(tReal, 1)} s dal lancio`;
   if (s.id === "onda") return `+${n((tReal - tFirst) * 1000, 1)} ms dallo scoppio`;
   if (s.id === "bolla") return `+${n(tReal - tFirst, 2)} s dallo scoppio`;
-  return `${n((tReal - s.t0) / 60, 1)} min dalla falla`;
+  if (s.id === "implosione") return `+${n((tReal - s.t0) * 1000, 0)} ms dal cedimento`;
+  const m = (tReal - s.t0) / 60;
+  return m < 2 ? `${n(tReal - s.t0, 0)} s dalla falla` : `${n(m, 1)} min dalla falla`;
 }
 
 export function TimelineBar({ input, result }: { input: SimInput; result: SimResult }) {
@@ -38,6 +41,13 @@ export function TimelineBar({ input, result }: { input: SimInput; result: SimRes
   const tFirst = tl.segments.find((s) => s.id === "onda" || s.id === "bolla")?.t0 ?? 0;
   const flood = seg.id === "allagamento" ? floodFraction(result, tl, tReal) : null;
   const worst = result.flood.worstName;
+  const h = hydroAt(tl.hydro, tReal);
+  const deg = (h.pitch * 180) / Math.PI;
+  const trim = Math.abs(deg) < 0.5 ? "in assetto" : `${n(Math.abs(deg), 0)}° ${deg < 0 ? "appruato" : "appoppato"}`;
+  const vz = Math.abs(h.vz) < 0.05 ? "" : h.vz > 0 ? `, scende a ${n(h.vz, 1)} m/s` : `, sale a ${n(-h.vz, 1)} m/s`;
+  const surfaced = tl.hydro.tSurface !== null && tReal - tl.hydro.t0 >= tl.hydro.tSurface;
+  const firstShock = tl.tracks.find((x) => x.tShock !== null)?.tShock ?? null;
+  const oilIn = firstShock === null ? null : firstShock + oilRiseS(input.axisDepth) - tReal;
   return (
     <div className="timeline" role="group" aria-label="Ricostruzione nel tempo">
       <button type="button" className="timeline-play" onClick={toggle} aria-label={playing ? "Pausa" : "Riproduci"}>
@@ -71,6 +81,15 @@ export function TimelineBar({ input, result }: { input: SimInput; result: SimRes
             report.whipAmpM > 0.005 &&
             ` · frusta: scafo ${n(report.hull.hz, 1)} Hz, bolla ${n(report.bubbleHz, 1)} Hz · ampiezza illustrativa ×${WHIP_VISUAL}`}
           {flood !== null && ` · ${worst}: ${n(flood * 100, 0)}% del volume (aria intrappolata)`}
+          {seg.id === "allagamento" &&
+            ` · acqua ${n(h.waterT, 0)} t, aria soffiata ${n(h.blownT, 0)} t · ${trim} · ${surfaced ? "in superficie" : `quota ${n(h.depth, 0)} m${vz}`}`}
+          {seg.id === "allagamento" && result.chlorine && " · cloro nel locale batterie"}
+          {seg.id === "allagamento" &&
+            result.oilSlick &&
+            oilIn !== null &&
+            (oilIn > 0 ? ` · nafta in superficie fra ${n(oilIn / 60, 0)} min` : " · nafta in superficie")}
+          {seg.id === "implosione" &&
+            ` · ${tl.hydro.already ? "già oltre" : "a"} ${n(tl.hydro.collapseM, 0)} m, quota di collasso del modello · compressione ${n(IMPLOSION_S * 1000, 0)} ms come misurato per lo Scorpion, poi la bolla d'aria`}
         </p>
       </div>
     </div>
