@@ -7,6 +7,8 @@ Un modello fisico costruito sulla letteratura aperta, una scena 3D che ricostrui
 tempo lo scoppio e le sue conseguenze, e un archivio di casi storici in cui ciò che è
 documentato resta sempre separato da ciò che è ipotesi.
 
+**Online: <https://timrouter.dns.army/abisso/>**
+
 ![Bolla di gas contro lo scafo di un Tipo VIIC a 70 m](docs/img/bolla.png)
 
 > Modello di studio, non strumento operativo. Ogni formula dichiara la sua fonte e il suo
