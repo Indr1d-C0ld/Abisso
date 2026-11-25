@@ -19,7 +19,7 @@ export const FAMILY_STRUCTURE: Record<Family, { title: string; body: string[] }>
   IX: {
     title: "Lo stesso schema, più lungo",
     body: [
-      "Due tubi a poppa, più nafta nelle casse esterne, Druckkörper stimato su 4,90 m. La disposizione è quella del VII: macchine a poppa della centrale, batterie sotto gli alloggi, tubi a prua. Il diametro maggiore alza la tensione circonferenziale a parità di lamiera, ed è per questo che il raggio letale cresce.",
+      "Due tubi a poppa, più nafta nelle casse esterne, Druckkörper di 4,40 m con lamiera di 18 mm (rapporto di Portsmouth 1946 sul IXC/40). La disposizione è quella del VII: macchine a poppa della centrale, batterie sotto gli alloggi, tubi a prua. In proporzione al diametro la lamiera è più sottile di quella del VIIC (22 mm su 4,70 m), ed è per questo che il raggio letale cresce.",
       "La lunghezza del corpo resistente, per il IX, è una stima di questo studio. Le paratie sono lo schema, non il piano di un cantiere.",
     ],
   },

@@ -53,13 +53,15 @@ di scoppio, 5 mancate): 491 esiti cambiati (IXC 169, IIB 161, XXI 93, XB 66), qu
 tutti verso il peggio; VIIC invariato. Il motivo: il VIIC sale di 3,5 mm (+19%), le altre
 classi meno o per niente, quindi rispetto al riferimento diventano più deboli. Il IIB, senza
 misura, peggiora solo per lo spostamento del riferimento. Casi storici: U-110
-(9/5/1941) e U-505 (4/6/1944), entrambi catturati, passavano da "serio" a "perdita". Lo
-scarto laterale, già un'ipotesi dichiarata, è stato portato da 12 a 14 m (U-110) e da 14
-a 16 m (U-505): tornano "serio", con falle in ogni compartimento. Il ritocco è scritto
-nelle ipotesi di ciascun caso.
+(9/5/1941) e U-505 (4/6/1944), entrambi catturati, passavano da "serio" a "perdita". Con il
+diametro corretto U-110 torna "serio" alla distanza originale di 12 m. Per U-505 lo
+scarto laterale, già un'ipotesi dichiarata, passa da 14 a 16 m: torna "serio", con falle
+in ogni compartimento. Il ritocco è scritto nelle sue ipotesi.
 
-Aperto: il diametro del Druckkörper del IX nel modello è 4,90 m (inviluppo), il rapporto
-di Portsmouth dà 4,40 m per il IXC/40. Non cambiato: tocca anche la geometria 3D.
+Diametro del Druckkörper dei IX (25/11/2026): da 4,90 m (stima di inviluppo) a 4,40 m,
+misurato sul IXC/40 (Portsmouth 1946) e assunto per IXB e IXC. Effetto: 85 esiti del IXC
+migliorano (58 da perdita a serio), nessuno peggiora. L'involucro di calcolo dei IX si
+abbassa da 2,93 a 2,73 m di semialtezza (ora lo fissa il pescaggio) e il modello 3D segue.
 
 ## Petali
 

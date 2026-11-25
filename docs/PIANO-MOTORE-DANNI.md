@@ -95,8 +95,8 @@ ordinate con freccia di Nurick–Martin (aggiornamento Yuen 2017) al vero e pass
 ordinate dalle fonti di guerra; squarci a petali (4–6, Wierzbicki 1999) ancorati al
 rivestimento e piegati verso l'interno. **Non fatto**: schegge balistiche in acqua, stato
 delle paratie (il modello non lo calcola). Spessori allineati alle misure di
-guerra il 25/11/2026 (VIIC 22 mm, XXI 26 mm, riferimento del modello a 22 mm). **Aperto**:
-diametro del Druckkörper del IX (4,90 m nel modello, 4,40 m nel rapporto del 1946).
+guerra il 25/11/2026 (VIIC 22 mm, XXI 26 mm, riferimento del modello a 22 mm). Diametro dei IX
+portato a 4,40 m (rapporto del 1946).
 - `response.ts`: deformazione permanente della lamiera da impulso e spessore (numero di
   danno adimensionale alla Nurick–Martin), così che a parità di gravità un colpo vicino e
   breve e uno lontano e lungo lascino forme diverse.

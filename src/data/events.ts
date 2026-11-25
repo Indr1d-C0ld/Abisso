@@ -108,8 +108,8 @@ export const EVENTS: HistEvent[] = [
       "Lo scafo resse abbastanza da essere visitato. Quindici morti, trentadue catturati.",
     ],
     assumed: [
-      "Mark VII Heavy, diamante di passo 40 m, scarto 14 m a dritta e 4 m verso prua. Aubrietia portava cariche: questo non è il suo foglio.",
-      "Asse a 16 m, scoppio a 24 m: un colpo basso, vicino alla quota del periscopio. Il modello, così, dà falle lungo il corpo e non compartimenti aperti. È compatibile con un battello che si può ancora salire. Non è una misura. Lo scarto era 12 m; con gli spessori delle misure di guerra (25/11/2026) a 12 m il modello dava già una perdita, e lo si è portato a 14.",
+      "Mark VII Heavy, diamante di passo 40 m, scarto 12 m a dritta e 4 m verso prua. Aubrietia portava cariche: questo non è il suo foglio.",
+      "Asse a 16 m, scoppio a 24 m: un colpo basso, vicino alla quota del periscopio. Il modello, così, dà falle lungo il corpo e non compartimenti aperti. È compatibile con un battello che si può ancora salire. Non è una misura.",
     ],
     sources: [
       "uboat.net, U-110, «The Secret Capture».",
@@ -123,7 +123,7 @@ export const EVENTS: HistEvent[] = [
       axisDepth: 16,
       burstDepth: 24,
       missX: 4,
-      missZ: 14,
+      missZ: 12,
       spacing: 40,
       era: "1941",
     },
