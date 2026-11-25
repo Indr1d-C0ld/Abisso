@@ -38,7 +38,8 @@ export function ConsequencesRead({ input, result }: { input: SimInput; result: S
       <p>
         <strong>Peso e quota.</strong> {fate} Spinta recuperabile soffiando a {n(input.axisDepth, 0)} m: {n(cap, 0)} t (aria
         di bordo {n(air.m3, 0)} m³ a 1 at, {air.source}; casse {n(boat.dispSub - boat.dispSurf, 0)} t). Con danno contenuto
-        l'equipaggio compensa e resta sotto; quando il modello impone l'emersione soffia tutto. Velocità di caduta da resistenza
+        l'equipaggio compensa e resta sotto; soffia tutto quando il modello impone l'emersione o quando non tiene più la quota
+        (acqua oltre il 60% della spinta recuperabile, o 15 m di discesa: ipotesi di condotta). Velocità di caduta da resistenza
         di forma (Cd 0,53 del cilindro supercritico), massa virtuale due volte il dislocamento.
       </p>
       {!result.flood.dry && (

@@ -168,6 +168,13 @@ WebM con didascalia, tutta nel browser. La mappa sullo scafo era già la resa *C
 - Gli eventi già catalogati (U-99, U-110, U-505…) riprodotti con la linea del tempo e
   camere guidate, con le parti documentate e quelle ipotizzate sempre separate a schermo.
 
+**Stato (25/11/2026): fatta.** I sette casi ricostruibili hanno una scheda per fase
+(`beats` in `src/data/events.ts`): a schermo, per la fase in corso, una riga "Documentato"
+e una "Ipotesi", e alla fine la storia accanto all'esito del modello. "Regia": camera
+guidata lungo le fasi, funzione del solo tempo a schermo; toccare la vista la restituisce.
+Regola di condotta dell'equipaggio corretta (emersione d'emergenza): ora i battelli che
+emersero nella storia emergono anche nel modello (test).
+
 ## 5. Ordine proposto
 
 **Fase 0 e Fase 1 insieme** (sono la priorità dichiarata: resa dei battelli e danno

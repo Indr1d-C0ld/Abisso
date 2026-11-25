@@ -26,6 +26,10 @@ Codice: `src/sim/hydrostatics.ts`, resa in `src/render/effects/Flooding.tsx` e
 - **U-570, KTB Notes – Diving e British Report** (uboatarchive.net) — verificato:
   883 / 784 t, riserva 99 t (144 t con le casse 2 e 4 a zavorra).
 - **Ricostruito**: acqua espellibile a quota d ≈ 3,9 · 205 / (1 + d/10) m³.
+- Condotta (ipotesi dichiarata, 25/11/2026): con danno contenuto l'equipaggio compensa e
+  resta sotto; soffia tutto se il modello impone l'emersione, se l'acqua supera il 60%
+  della spinta recuperabile o se il battello è sceso di 15 m. Senza questa regola U-99,
+  U-110, U-175 e U-505 nel modello affondavano; nella storia emersero.
 - Altre classi: aria scalata con il dislocamento (stima). Ritardo di 25 s e rateo di
   2 t/s per la soffiatura: ipotesi di resa. Il riempimento dei locali non si ricalcola
   con la discesa; pompe di sentina e timoni non sono modellati.

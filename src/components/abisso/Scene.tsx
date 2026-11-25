@@ -938,6 +938,84 @@ function CameraShare({ follow }: { follow: boolean }) {
   return null;
 }
 
+type Shot = { p: THREE.Vector3; t: THREE.Vector3 };
+
+/**
+ * Inquadrature della regia per ogni fase: da dove si guarda e che cosa. Sono scelte di
+ * lettura (resa), funzione solo del tempo a schermo: scorrere la barra le ripercorre.
+ */
+function guidedShots(timeline: Timeline, loa: number) {
+  const L = loa;
+  const tracks = timeline.tracks.filter((t) => t.yield !== "none");
+  const near = [...(tracks.length ? tracks : timeline.tracks)].sort((a, b) => a.slantPh - b.slantPh)[0];
+  const B = near ? new THREE.Vector3(...near.end) : new THREE.Vector3(0, 0, 10);
+  const side = B.z < 0 ? -1 : 1;
+  const mid = B.clone().multiplyScalar(0.5);
+  const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+  const close = Math.max(24, Math.abs(B.z) + 20);
+  const table: Record<string, [Shot, Shot]> = {
+    // Dall'alto, con la superficie e le cariche che scendono.
+    discesa: [
+      { p: v(L * 0.75, L * 0.5, side * L * 1.15), t: v(0, Math.min(timeline.surfaceY, L * 0.3) * 0.5, 0) },
+      { p: v(L * 0.45, L * 0.2, side * L * 0.85), t: mid.clone() },
+    ],
+    // Vicino, dal lato dello scoppio: il fronte e il danno che compare.
+    onda: [
+      { p: v(B.x + L * 0.18, B.y + 5, side * close), t: mid.clone() },
+      { p: v(B.x + L * 0.1, B.y + 3, side * close * 0.85), t: v(B.x * 0.5, 0, 0) },
+    ],
+    // Un passo indietro: la bolla che pulsa e lo scafo che frusta.
+    bolla: [
+      { p: v(B.x + L * 0.25, L * 0.1, side * Math.max(close * 1.2, L * 0.55)), t: mid.clone() },
+      { p: v(L * 0.3, L * 0.14, side * L * 0.8), t: v(0, 0, 0) },
+    ],
+    // Di fianco e lontano: assetto e quota.
+    allagamento: [
+      { p: v(L * 0.15, L * 0.12, side * L * 1.35), t: v(0, 0, 0) },
+      { p: v(-L * 0.2, L * 0.2, side * L * 1.5), t: v(0, 0, 0) },
+    ],
+    implosione: [
+      { p: v(L * 0.3, L * 0.1, side * L * 1.0), t: v(0, 0, 0) },
+      { p: v(L * 0.22, L * 0.08, side * L * 0.9), t: v(0, 0, 0) },
+    ],
+  };
+  return table;
+}
+
+const BLEND_S = 1.0;
+
+function GuidedCamera({ timeline, loa }: { timeline: Timeline; loa: number }) {
+  const shots = useMemo(() => guidedShots(timeline, loa), [timeline, loa]);
+  const guided = usePlayer((s) => s.guided);
+  const pos = useMemo(() => new THREE.Vector3(), []);
+  const tgt = useMemo(() => new THREE.Vector3(), []);
+  useFrame(({ camera, controls }) => {
+    if (!guided) return;
+    const d = Math.min(usePlayer.getState().t, timeline.duration);
+    const i = timeline.segments.findIndex((s) => d < s.d1);
+    const idx = i < 0 ? timeline.segments.length - 1 : i;
+    const seg = timeline.segments[idx];
+    const [a, b] = shots[seg.id];
+    const u = THREE.MathUtils.smoothstep((d - seg.d0) / Math.max(1e-3, seg.d1 - seg.d0), 0, 1);
+    pos.lerpVectors(a.p, b.p, u);
+    tgt.lerpVectors(a.t, b.t, u);
+    // Raccordo con l'inquadratura d'apertura della fase seguente.
+    const next = timeline.segments[idx + 1];
+    if (next) {
+      const w = THREE.MathUtils.smoothstep(d, seg.d1 - BLEND_S, seg.d1);
+      pos.lerp(shots[next.id][0].p, w);
+      tgt.lerp(shots[next.id][0].t, w);
+    }
+    camera.position.copy(pos);
+    const c = controls as unknown as { target: THREE.Vector3; update: () => void } | null;
+    if (c) {
+      c.target.copy(tgt);
+      c.update();
+    } else camera.lookAt(tgt);
+  });
+  return null;
+}
+
 function PlayerClock() {
   useFrame((_, dt) => usePlayer.getState().tick(Math.min(dt, 0.1)));
   return null;
@@ -1039,6 +1117,7 @@ function Stage({
       )}
       <PostFX mode={finish} quality={quality} />
       {!follow && <CameraRig cam={cam} loa={boat.loa} focus={focus} />}
+      {!follow && <GuidedCamera timeline={timeline} loa={boat.loa} />}
       <CameraShare follow={follow} />
       <Hull boatId={boat.id} era={input.era} finish={finish} result={result} xray={xray} cut={cut} interior={interior} skin={skin} timeline={timeline} report={report} onHit={onHit} onFocus={(x, y, z) => setFocus((f) => ({ x, y, z, n: (f?.n ?? 0) + 1 }))} />
       {!follow && <PlayerClock />}
@@ -1159,6 +1238,8 @@ export function Scene({
         gl={{ antialias: false, localClippingEnabled: true, alpha: false, powerPreference: "high-performance", preserveDrawingBuffer: true }}
         onCreated={({ camera }) => camera.lookAt(0, 0.4, 0)}
         onPointerMissed={() => onMiss()}
+        // Toccare la vista restituisce la camera a chi guarda.
+        onPointerDown={() => usePlayer.getState().guided && usePlayer.getState().setGuided(false)}
       >
         <Stage
           input={input}

@@ -16,6 +16,8 @@ import { CAM_LABEL, useAbisso } from "@/state/store";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
 import { CompareRead } from "@/components/abisso/CompareRead";
+import { EventOverlay } from "@/components/abisso/EventOverlay";
+import { eventIntact } from "@/data/events";
 import { canRecord, exportImage, recordSequence, stopRecording } from "@/render/exporter";
 import { buildTimeline, displayToReal, segmentAt } from "@/sim/timeline";
 import { usePlayer } from "@/render/player";
@@ -372,6 +374,8 @@ export function App() {
   // Confronto (Fase 5): un caso conservato affiancato a quello corrente.
   const [compareId, setCompareId] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
+  const guided = usePlayer((s) => s.guided);
+  const setGuided = usePlayer((s) => s.setGuided);
   const other = useMemo(() => {
     const c = cases.find((x) => x.id === compareId);
     if (!c) return null;
@@ -424,7 +428,16 @@ export function App() {
         </nav>
       </header>
 
-      {tab === "casi" && <EventLibrary events={EVENTS} onLoad={loadEvent} />}
+      {tab === "casi" && (
+        <EventLibrary
+          events={EVENTS}
+          onLoad={(id) => {
+            // I casi ricostruibili partono con la regia: la camera segue le fasi.
+            setGuided(Boolean(eventById(id)?.recreable));
+            loadEvent(id);
+          }}
+        />
+      )}
       {tab === "archivio" && (
         <div className="workspace">
           <Archive />
@@ -752,6 +765,7 @@ export function App() {
                 )}
               </div>
               <div className="overlay">
+                {event?.recreable && eventIntact(event, input) && <EventOverlay event={event} input={input} result={computed.data} />}
                 <TimelineBar input={input} result={computed.data} />
                 <div className="overlay-row">
                 <div className="tag">
@@ -763,10 +777,22 @@ export function App() {
                 </div>
                 <div className="presets">
                   {(Object.keys(CAM_LABEL) as (keyof typeof CAM_LABEL)[]).map((k) => (
-                    <button key={k} type="button" className="preset" data-on={cam === k} onClick={() => setCam(k)}>
+                    <button
+                      key={k}
+                      type="button"
+                      className="preset"
+                      data-on={!guided && cam === k}
+                      onClick={() => {
+                        setGuided(false);
+                        setCam(k);
+                      }}
+                    >
                       {CAM_LABEL[k]}
                     </button>
                   ))}
+                  <button type="button" className="preset" data-on={guided} onClick={() => setGuided(!guided)} title="La camera segue le fasi della ricostruzione">
+                    Regia
+                  </button>
                 </div>
                 </div>
               </div>

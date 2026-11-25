@@ -15,7 +15,15 @@ export type HistEvent = {
   assumed: string[];
   sources: string[];
   setup?: Partial<SimInput>;
+  /**
+   * Ricostruzione guidata (Fase 6): per ogni fase della barra del tempo, che cosa è
+   * documentato e che cosa è ipotesi del modello. Testi ricavati da `known` e `assumed`.
+   */
+  beats?: Partial<Record<Phase, Beat>>;
 };
+
+export type Phase = "discesa" | "onda" | "bolla" | "allagamento" | "implosione";
+export type Beat = { doc?: string; hyp?: string };
 
 const still: Partial<SimInput> = { speedKn: 2, applyDrift: false, armWindow: 8, heading: 0 };
 
@@ -60,6 +68,12 @@ export const EVENTS: HistEvent[] = [
       "uboat.net, U-99, voce Fate.",
       "Resoconti aperti sull’HX 112 (Walker, capitano Donald Macintyre).",
     ],
+    beats: {
+      discesa: { doc: "Walker e Vanoc cacciano insieme durante l’attacco al convoglio HX 112.", hyp: "Mark VII Heavy all’amatolo, diamante di passo 42 m spostato di 60 m a dritta, quota 80 m. Né il lotto né lo schema sono nei sunti." },
+      onda: { doc: "Il battello fu gravemente danneggiato dalle cariche di Walker.", hyp: "Una sola carica resta a circa 18 m dal piano di simmetria; le altre escono." },
+      bolla: { hyp: "Bolla e frusta sono calcolo del modello: nessun rapporto le descrive." },
+      allagamento: { doc: "Il battello tornò in superficie e non implose. Fu autoaffondato alle 03:43.", hyp: "Il modello si ferma alle falle. Tempi di allagamento ed emersione sono calcolati, non riferiti." },
+    },
     setup: {
       ...still,
       boatId: "u99",
@@ -115,6 +129,12 @@ export const EVENTS: HistEvent[] = [
       "uboat.net, U-110, «The Secret Capture».",
       "Sintesi dell’operazione Primrose.",
     ],
+    beats: {
+      discesa: { doc: "Aubrietia lo trova all’ASDIC dopo che il periscopio era rimasto alto: contatto vicino alla quota periscopica.", hyp: "Mark VII Heavy, diamante di passo 40 m, asse a 16 m. Non è il foglio di Aubrietia." },
+      onda: { doc: "Lo scafo resse abbastanza da essere visitato.", hyp: "Scoppio a 24 m, scarto 12 m a dritta e 4 m verso prua." },
+      bolla: { hyp: "Bolla e frusta sono calcolo del modello." },
+      allagamento: { doc: "Costretto in superficie e abbandonato; un drappello britannico salì a bordo. Affondò a rimorchio il giorno dopo.", hyp: "Falle lungo il corpo, nessun compartimento aperto. L’emersione è calcolata dal modello." },
+    },
     setup: {
       ...still,
       boatId: "u110",
@@ -167,6 +187,12 @@ export const EVENTS: HistEvent[] = [
       "uboat.net, U-175, Fate.",
       "Naval History Magazine, USNI, aprile 2024, «A Nautical Knife Fight»: le 11 cariche e lo scoppio sotto lo scafo.",
     ],
+    beats: {
+      discesa: { doc: "Il primo lancio dello Spencer fu uno schema di 11 cariche.", hyp: "US Mark 6, fila da 10 di passo 16 m, asse a 50 m. Il tipo di carica non è nel sunto; lo scafo è il IXC dell’archivio." },
+      onda: { doc: "I superstiti le sentirono scoppiare sotto lo scafo: tutto tremava.", hyp: "Scoppio a 68 m, scarto 8 m." },
+      bolla: { hyp: "Bolla e frusta sono calcolo del modello." },
+      allagamento: { doc: "Portato in superficie dalle cariche, poi finito dal fuoco e dall’autoaffondamento.", hyp: "Falle su tutto il corpo, nessun locale allagato. Artiglieria e valvole aperte non sono nel modello." },
+    },
     setup: {
       ...still,
       boatId: "ix-c",
@@ -204,6 +230,12 @@ export const EVENTS: HistEvent[] = [
       "uboat.net, U-202, Fate.",
       "Sintesi aperta della caccia della Starling, 1–2 giugno 1943.",
     ],
+    beats: {
+      discesa: { doc: "Dopo circa quindici ore di caccia il battello è in superficie a mezzanotte; Walker lancia cariche a quota bassa passando di lato.", hyp: "Un solo passaggio: una carica Mark VII Heavy al Torpex, asse a 12 m. Lo scafo è il VIIC dell’archivio." },
+      onda: { doc: "Affondato alle 00:30 da cariche e dal fuoco della Starling.", hyp: "Scoppio a 16 m, 8 m a dritta." },
+      bolla: { hyp: "Bolla e frusta sono calcolo del modello." },
+      allagamento: { doc: "Affondò in una quarantina di minuti.", hyp: "Il cannone, che chiuse il caso insieme alle cariche, non è in questo studio." },
+    },
     setup: {
       ...still,
       boatId: "vii-c",
@@ -236,6 +268,10 @@ export const EVENTS: HistEvent[] = [
       "Quota 20 m, perché il contatto era basso e i caccia lo videro quasi in superficie.",
     ],
     sources: ["U-boat Archive, rapporto della USS Chatelain sull’U-505, 4 giugno 1944."],
+    beats: {
+      discesa: { doc: "Schema completo di Hedgehog della Chatelain, rotta 285; il rilevamento si spostava a dritta.", hyp: "Ellisse USA, scarto 18 m verso prua e 36 m a dritta, quota 20 m. Il rapporto dice solo che mancò." },
+      bolla: { doc: "Nessuno scoppio: il contatto si perse a circa 50 iarde.", hyp: "Fuori dal tappeto, nel modello nessun proiettile detona." },
+    },
     setup: {
       ...still,
       boatId: "u505",
@@ -271,6 +307,12 @@ export const EVENTS: HistEvent[] = [
       "U-boat Archive, rapporto Chatelain e rapporto del TG 22.3.",
       "Naval History and Heritage Command, resoconto della cattura.",
     ],
+    beats: {
+      discesa: { doc: "14 cariche Mark 8, schema shallow, spolette idrostatiche e magnetiche.", hyp: "Fila da 10 di Mark 6, passo 22 m: il modello non ha il Mark 8." },
+      onda: { doc: "Tutte esplose. Una scoppiò molto in alto, con un geyser di una quindicina di metri.", hyp: "Asse a 22 m, scoppio a 18 m, scarto 16 m." },
+      bolla: { doc: "I pennacchi erano ancora in aria quando il battello ruppe la superficie.", hyp: "Bolla e cupola sono calcolo del modello." },
+      allagamento: { doc: "Emerse quasi subito, fu abbandonato e catturato. Non era stato spaccato.", hyp: "Falle, non un Druckkörper aperto. Il tempo di emersione del modello è più lungo del «quasi subito» del rapporto." },
+    },
     setup: {
       ...still,
       boatId: "u505",
@@ -309,6 +351,12 @@ export const EVENTS: HistEvent[] = [
       "uboat.net, U-736, Fate: «depth charges» della Loch Killin.",
       "Naval Historical Society of Australia, 6 agosto 1944: il battello in superficie contro la poppa, e il colpo di grazia della Starling.",
     ],
+    beats: {
+      discesa: { doc: "uboat.net registra cariche di profondità della Loch Killin; la classe Loch portava lo Squid.", hyp: "Squid a tre colpi, quota 80 m. Lo scafo è il VIIC dell’archivio." },
+      onda: { hyp: "Scarto 36 m a dritta: un vertice del triangolo resta vicino allo scafo, gli altri due no." },
+      bolla: { hyp: "Bolla e frusta sono calcolo del modello." },
+      allagamento: { doc: "Portato in superficie; parte dell’equipaggio passò sul ponte della fregata. Lo finì la Starling.", hyp: "Sala diesel allagata, «danno grave». La Starling non è in questo richiamo." },
+    },
     setup: {
       ...still,
       boatId: "vii-c",

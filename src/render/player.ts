@@ -14,6 +14,9 @@ type PlayerState = {
   playing: boolean;
   /** Valore di ?t= se presente: la riproduzione non parte da sola. */
   pinned: number | null;
+  /** Regia (Fase 6): la camera segue le fasi della ricostruzione. */
+  guided: boolean;
+  setGuided: (guided: boolean) => void;
   restart: (duration: number) => void;
   setDuration: (duration: number) => void;
   seek: (t: number) => void;
@@ -38,6 +41,8 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   duration: 1,
   playing: false,
   pinned: pinnedFromUrl(),
+  guided: false,
+  setGuided: (guided) => set({ guided }),
   restart: (duration) => {
     const pinned = get().pinned;
     if (pinned !== null) {

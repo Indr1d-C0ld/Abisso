@@ -59,6 +59,9 @@ export const BLOW_RATE_TPS = 2;
  */
 export const IMPLOSION_S = 0.037;
 export const IMPLOSION_BUBBLE_S = 0.224;
+/** Soglie dell'emersione d'emergenza (ipotesi di condotta). */
+export const EMERGENCY_FRACTION = 0.6;
+export const EMERGENCY_SINK_M = 15;
 /** Assestamento in superficie dopo l'emersione, s (resa). */
 export const SETTLE_S = 20;
 /** Assetto massimo rappresentato, rad. */
@@ -202,6 +205,7 @@ export function hydroTrack(boat: Boat, result: SimResult, depth0: number, t0: nu
   let blown = 0;
   let tCollapse: number | null = null;
   let tSurface: number | null = null;
+  let emergency = false;
   for (let k = 0; k <= steps; k++) {
     const t = k * dt;
     let water = 0;
@@ -215,12 +219,15 @@ export function hydroTrack(boat: Boat, result: SimResult, depth0: number, t0: nu
       parts.push({ w, fill, row: r });
     }
     // L'equipaggio soffia dopo un ritardo. Con danno contenuto compensa il peso e resta
-    // sotto (in caccia non si emerge per scelta); quando il modello impone l'emersione
-    // (grave o perdita) soffia tutto ciò che casse e aria consentono.
+    // sotto (in caccia non si emerge per scelta). Soffia tutto ciò che casse e aria
+    // consentono quando il modello impone l'emersione (grave o perdita) oppure quando non
+    // riesce più a tenere la quota: acqua oltre EMERGENCY_FRACTION della spinta
+    // recuperabile, o battello sceso di EMERGENCY_SINK_M. Ipotesi di condotta, dichiarata.
     if (t > BLOW_DELAY_S) {
       const cap = blowCapacityT(boat, depth);
-      const goal = result.forcedSurface ? cap : Math.min(cap, water);
-      blown = Math.min(goal, blown + BLOW_RATE_TPS * dt);
+      if (water > EMERGENCY_FRACTION * cap || depth > depth0 + EMERGENCY_SINK_M) emergency = true;
+      const goal = result.forcedSurface || emergency ? cap : Math.min(cap, water);
+      blown = Math.min(goal, Math.max(blown, Math.min(goal, blown + BLOW_RATE_TPS * dt)));
     }
     const net = water - blown;
     const pitch = trimEquilibrium(parts, moment, disp + water, bg, boat.phDiameter / 2);

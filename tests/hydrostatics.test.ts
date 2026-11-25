@@ -89,3 +89,24 @@ test("oltre il collasso prima dello scoppio: implosione subito dopo la bolla", (
   assert.equal(tl.hydro.already, true);
   assert.ok(tl.segments.some((s) => s.id === "implosione"));
 });
+
+test("casi storici: i battelli che emersero emergono anche nel modello", async () => {
+  const { EVENTS } = await import("@/data/events");
+  for (const id of ["u99-1941-03-17", "u110-1941-05-09", "u175-1943-04-17", "u202-1943-06-02", "u505-cariche", "u736-1944-08-06"]) {
+    const e = EVENTS.find((x) => x.id === id)!;
+    const input = { ...DEFAULT_INPUT, ...e.setup };
+    const tl = buildTimeline(input, evaluate(input));
+    assert.ok(tl.hydro.tSurface !== null, `${id} non emerge`);
+    assert.equal(tl.hydro.tCollapse, null, `${id} implode`);
+  }
+});
+
+test("casi ricostruibili: ogni fase della barra ha la sua scheda documentato/ipotesi", async () => {
+  const { EVENTS } = await import("@/data/events");
+  for (const e of EVENTS.filter((x) => x.recreable)) {
+    assert.ok(e.beats, `${e.id} senza beats`);
+    const input = { ...DEFAULT_INPUT, ...e.setup };
+    const tl = buildTimeline(input, evaluate(input));
+    for (const s of tl.segments) assert.ok(e.beats![s.id], `${e.id}: manca ${s.id}`);
+  }
+});

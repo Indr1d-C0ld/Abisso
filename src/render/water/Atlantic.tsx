@@ -52,7 +52,9 @@ export function Atlantic({
     const target = (controls as unknown as { target?: THREE.Vector3 } | null)?.target;
     // Senza controlli (seconda vista del confronto) la distanza è quella dall'origine.
     const dist = target ? camera.position.distanceTo(target) : camera.position.length();
-    fog.density = baseDensity * THREE.MathUtils.clamp(70 / Math.max(1, dist), 0.25, 1);
+    // Sopra la superficie si guarda in aria: la foschia dell'acqua quasi sparisce.
+    const air = camera.position.y > depth ? 0.12 : 1;
+    fog.density = baseDensity * air * THREE.MathUtils.clamp(70 / Math.max(1, dist), 0.25, 1);
   });
   return (
     <>

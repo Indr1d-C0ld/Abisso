@@ -111,6 +111,8 @@
 
 .nav button[data-on="true"],
 .chip[data-on="true"],
+.preset[data-on="true"],
+.ghost[data-on="true"],
 .preset:hover,
 .ghost:hover,
 .nav button:hover,
@@ -828,3 +830,19 @@ table.compare th, table.compare td { text-align: left; padding: 0.25rem 0.4rem; 
 table.compare tbody th { font-weight: 500; width: 36%; }
 table.compare tr[data-diff="true"] td { background: rgba(181, 82, 58, 0.14); }
 .export-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.4rem 0; }
+
+/* Casi storici ricostruiti (Fase 6): documentato e ipotesi sempre separati. */
+.event-overlay {
+  background: rgba(20, 24, 26, 0.88); color: #e7dcc6; border: 1px solid var(--color-line);
+  border-radius: 6px; padding: 0.5rem 0.7rem; margin-bottom: 0.4rem; font-size: 0.82rem; line-height: 1.35;
+  pointer-events: none;
+}
+.event-overlay p { margin: 0.15rem 0; }
+.event-overlay .eo-title { font-weight: 600; display: flex; justify-content: space-between; gap: 1rem; }
+.event-overlay .eo-title span { color: #c6a15a; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.06em; }
+.event-overlay p[data-kind] { padding-left: 0.5rem; border-left: 3px solid; }
+.event-overlay p[data-kind="doc"] { border-color: #8fb0a0; }
+.event-overlay p[data-kind="hyp"] { border-color: #c6a15a; }
+.event-overlay b { text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; margin-right: 0.4rem; }
+.event-overlay p[data-kind="doc"] b { color: #8fb0a0; }
+.event-overlay p[data-kind="hyp"] b { color: #c6a15a; }
