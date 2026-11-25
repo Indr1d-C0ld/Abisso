@@ -1,6 +1,7 @@
 {
   "name": "abisso",
   "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
   "description": "Studio analitico del danno da carica di profondità sugli U-Boot della seconda guerra mondiale.",

@@ -143,5 +143,10 @@ con quella del modello.
 
 ## Licenza
 
-Non ancora definita: finché non compare un file `LICENSE`, tutti i diritti sono riservati
-all'autore.
+Il codice è software libero, distribuito con licenza
+[GNU General Public License versione 3](LICENSE) o successiva (GPL-3.0-or-later): si può
+usare, studiare, modificare e ridistribuire, a patto che le versioni derivate restino sotto
+la stessa licenza. È fornito senza alcuna garanzia.
+
+Le fotografie in `public/archive/` sono di dominio pubblico e non sono coperte dalla
+licenza del codice; le didascalie nell'app ne riportano la collocazione.
